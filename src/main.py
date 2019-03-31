@@ -1,27 +1,28 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-import pandas as pd
 import functools
 import DataSet
 import Estimator
-import os
 import time
-from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--batch_size', default=128, type=int, help='batch size')
-parser.add_argument('--train_steps', default=1000, type=int,
-                    help='number of training steps')
+parser.add_argument('--batch_size', default=128, type=int)
+parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=5, type=int)
 parser.add_argument("--data_path", default="./data/sample-1m", type=str)
 parser.add_argument("--emb_size", default=64, type=int)
-parser.add_argument("--cuda", default='1', type=str)
+parser.add_argument("--conv_size", default=5, type=int)
+parser.add_argument("--n_attention", default=3, type=int)
+parser.add_argument("--dropout", default=0.5, type=int)
+parser.add_argument("--l2", default=1e-4, type=float)
 
 
 def main(argv):
     args = parser.parse_args(argv[1:])
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
+
+    n_word = 100000
+    n_id = 100000
 
     run_config = tf.estimator.RunConfig().replace(
         session_config=tf.ConfigProto(
@@ -33,11 +34,17 @@ def main(argv):
     model_fn是模型定义
     '''
     classifier = tf.estimator.Estimator(
-        model_fn=Estimator.my_model,
+        model_fn=Estimator.model_fn,
         model_dir="./model/{}".format(int(time.time())),
         config=run_config,
         params={
             "emb_size": args.emb_size,
+            "n_word": n_word,
+            "n_id": n_id,
+            "conv_size": args.conv_size,
+            "n_attention": args.n_attention,
+            "dropout": args.drop_out,
+            "l2": args.l2,
         },
     )
 
@@ -74,9 +81,12 @@ def main(argv):
     导出estimator为pb模型文件，需要提供serving_input_receiver_fn方法
     '''
     # TensorFolw standard serving input, for tensorflow serving
-    feature_spec = tf.feature_column.make_parse_example_spec(my_feature_columns)
+    feature_spec = {
+        "feat_ids": tf.FixedLenFeature(dtype=tf.int64, shape=[None, args.field_size]),
+        "feat_vals": tf.FixedLenFeature(dtype=tf.float32, shape=[None, args.field_size])
+    }
     serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
-
+    export_dir = classifier.export_savedmodel('export', serving_input_receiver_fn)
     print('Exported to {}'.format(export_dir))
 
 
