@@ -2,6 +2,15 @@
 import tensorflow as tf
 import multiprocessing
 
+FEATURES = {
+    "jids": tf.FixedLenFeature([], tf.int64),
+    "jds": tf.FixedLenFeature([500], tf.int64),
+    "jd_lens": tf.FixedLenFeature([], tf.int64),
+    "pids": tf.FixedLenFeature([], tf.int64),
+    "cvs": tf.FixedLenFeature([500], tf.int64),
+    "cv_lens": tf.FixedLenFeature([], tf.int64),
+}
+
 
 def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     """
@@ -30,8 +39,7 @@ def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     weighted_features = tf.matmul(weight, keys)  # [B, 1, 64]
     weighted_features = tf.squeeze(weighted_features, axis=1) # [B, 64]
 
-    queries = tf.reduce_mean(queries, axis=-2)
-    return weight, weighted_features, queries
+    return weight, weighted_features
 
 
 def cnn(x: tf.Tensor, conv_size):
@@ -43,7 +51,6 @@ def cnn(x: tf.Tensor, conv_size):
         strides=[1, 1],
         padding='same',
         activation=tf.nn.relu,
-        name='cnn',
     )
     x = tf.squeeze(x, axis=3)
     return x
@@ -118,27 +125,34 @@ def model_fn(features, labels, mode, params):
             ),
             name="id_emb",
         )
-        jids = tf.nn.embedding_lookup(id_emb, jds)
-        pids = tf.nn.embedding_lookup(id_emb, cvs)
+        jids = tf.nn.embedding_lookup(id_emb, jids)
+        pids = tf.nn.embedding_lookup(id_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs, pids = multi_head_attention(pids, jds, jd_lens)
-        cv_weights, cv_weighted_vecs, jids = multi_head_attention(jids, cvs, cv_lens)
+        jd_weights, jd_weighted_vecs = multi_head_attention(pids, jds, jd_lens)
+        cv_weights, cv_weighted_vecs = multi_head_attention(jids, cvs, cv_lens)
+
+    jids = tf.reduce_mean(jids, axis=-2)
+    pids = tf.reduce_mean(pids, axis=-2)
 
     with tf.variable_scope("pooling"):
-        jd_global_vecs = tf.reduce_max(jds)
-        cv_global_vecs = tf.reduce_max(cvs)
+        jd_global_vecs = tf.reduce_max(jds, axis=1)
+        cv_global_vecs = tf.reduce_max(cvs, axis=1)
 
-    features = tf.concat([
-        jids, jd_global_vecs, jd_weighted_vecs, pids, cv_global_vecs, cv_weighted_vecs
-    ])
-
-    logits = mlp(
-        features=features,
-        emb_dim=emb_size,
-        dropout=dropout,
-        training=(mode == tf.estimator.ModeKeys.TRAIN)
+    features = tf.concat(
+        values=[jids, jd_global_vecs, jd_weighted_vecs, pids, cv_global_vecs, cv_weighted_vecs],
+        # values=[jids, jd_global_vecs, pids, cv_global_vecs],
+        # values=[jd_global_vecs, cv_global_vecs],
+        axis=-1,
     )
+
+    with tf.variable_scope("mlp"):
+        logits = mlp(
+            features=features,
+            emb_dim=emb_size,
+            dropout=dropout,
+            training=(mode == tf.estimator.ModeKeys.TRAIN)
+        )
     probs = tf.nn.sigmoid(logits, name="output")
 
     '''
@@ -166,18 +180,21 @@ def model_fn(features, labels, mode, params):
             export_outputs=export_outputs,
         )
 
-    loss = tf.losses.log_loss(
-        labels=labels,
-        predictions=tf.squeeze(probs),
-    )
-    l2_loss = sum([tf.nn.l2_loss(x) for x in tf.trainable_variables()])
-    loss += l2_loss * l2
+    with tf.variable_scope("loss"):
+        fit_label = labels[:, 2]
+        loss = tf.losses.log_loss(
+            labels=fit_label,
+            predictions=tf.squeeze(probs),
+        )
+        if l2:
+            l2_loss = sum([tf.nn.l2_loss(x) for x in tf.trainable_variables()])
+            loss += l2_loss * l2
 
-    auc = tf.metrics.auc(
-        labels=labels,
-        predictions=tf.squeeze(probs),
-        name="auc_op",
-    )
+        auc = tf.metrics.auc(
+            labels=fit_label,
+            predictions=tf.squeeze(probs),
+            name="auc_op",
+        )
     metrics = {
         "auc": auc,
     }
@@ -209,13 +226,13 @@ def input_fn(filenames, batch_size=32, shuffle=False):
     print("parsing", filenames)
     def _parse_fn(record):
         features = {
-            "labels": tf.FixedLenFeature([3], tf.int32),
-            "jids": tf.FixedLenFeature([], tf.int32),
-            "jds": tf.FixedLenFeature([500], tf.int32),
-            "jd_lens": tf.FixedLenFeature([], tf.int32),
-            "pids": tf.FixedLenFeature([], tf.int32),
-            "cvs": tf.FixedLenFeature([500], tf.int32),
-            "cv_lens": tf.FixedLenFeature([], tf.int32),
+            "labels": tf.FixedLenFeature([3], tf.int64),
+            "jids": tf.FixedLenFeature([], tf.int64),
+            "jds": tf.FixedLenFeature([500], tf.int64),
+            "jd_lens": tf.FixedLenFeature([], tf.int64),
+            "pids": tf.FixedLenFeature([], tf.int64),
+            "cvs": tf.FixedLenFeature([500], tf.int64),
+            "cv_lens": tf.FixedLenFeature([], tf.int64),
         }
         parsed = tf.parse_single_example(record, features)
         labels = parsed.pop("labels")
@@ -230,3 +247,12 @@ def input_fn(filenames, batch_size=32, shuffle=False):
     batch_features, batch_labels = itetator.get_next()
     return batch_features, batch_labels
 
+
+if __name__ == "__main__":
+    tf.enable_eager_execution()
+    batch_features, batch_labels = input_fn(
+        "./data/multi_data7_tech/multi_data7_tech.train2.tfrecord",
+        batch_size=32,
+    )
+    print(batch_features)
+    print(batch_labels)

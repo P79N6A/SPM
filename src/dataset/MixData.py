@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+import re
+import collections
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+import pickle
+import json
+
+
+class MixData:
+    def __init__(self, fpin, wfreq, doc_len):
+        self.fpin = fpin
+        self.doc_len = doc_len
+
+        exp_features_names = [
+            'expect_id',
+            'doc_token',
+            'skills',
+        ]
+        job_features_names = [
+            'job_id',
+            'doc_token',
+            'skills',
+        ]
+
+        fps = [
+            '{}.profile.job'.format(fpin),
+            '{}.profile.expect'.format(fpin)]
+        self.word_dict = self.build_dict(fps, wfreq)
+        with open("{}.words.json".format(fpin), "w", encoding="utf8") as f:
+            json.dump(self.word_dict, f, ensure_ascii=False, indent=2)
+
+        self.exp_to_row, self.exp_docs, self.exp_doc_lens, self.exp_doc_raw = self.build_features(
+            fp='{}.profile.expect'.format(fpin),
+            feature_name=exp_features_names,
+        )
+        self.job_to_row, self.job_docs, self.job_doc_lens, self.job_doc_raw = self.build_features(
+            fp='{}.profile.job'.format(fpin),
+            feature_name=job_features_names,
+        )
+        print("num of words: {}".format(len(self.word_dict)))
+        print("num of person: {}".format(len(self.exp_to_row)))
+        print("num of job: {}".format(len(self.job_to_row)))
+        with open("{}.param.json".format(fpin), "w") as f:
+            json.dump(
+                {
+                    "n_word": len(self.word_dict),
+                    "n_id": len(self.exp_to_row) + len(self.job_to_row)
+                },
+                f,
+            )
+
+    @staticmethod
+    def build_dict(fps, w_freq):
+        words = []
+        for fp in fps:
+            with open(fp, encoding="utf8") as f:
+                for line in tqdm(f):
+                    line = line.strip().split('\001')[-3:]
+                    line = '\t'.join(line)
+                    line = re.split("[ \t]", line)
+                    words.extend(line)
+        words_freq = collections.Counter(words)
+        word_list = [k for k, v in words_freq.items() if v >= w_freq]
+        word_list = ['__pad__', '__unk__'] + word_list
+        word_dict = {k: v for v, k in enumerate(word_list)}
+        print('n_words: {}'.format(len(word_dict)), len(word_list))
+        return word_dict
+
+    def build_features(self, fp, feature_name):
+        n_feature = len(feature_name)
+        print('split raw data ...')
+        with open(fp, encoding="utf8") as f:
+            data_list = []
+            for line in tqdm(f):
+                features = line.split('\001')
+                if len(features) != n_feature:
+                    continue
+                # id
+                cid = features[0]
+                features_dict = dict(zip(feature_name, features))
+                # text feature
+                words = features_dict["doc_token"].strip()
+                word_ids, true_len = self.doc1d(words, self.doc_len)
+                # raw text
+                doc = features_dict['doc_token']
+                # reduce
+                data_list.append([cid, word_ids, true_len, doc])
+        ids_list, word_ids, true_lens, doc = list(zip(*data_list))
+        # id
+        id_to_row = {k: v for v, k in enumerate(ids_list)}
+        # doc
+        word_ids = np.array(word_ids)
+        true_lens = np.array(true_lens)
+        return id_to_row, word_ids, true_lens, doc
+
+    def doc1d(self, sent, sent_len):
+        if type(sent) == str:
+            sent = sent.strip().split(' ')
+        sent = [self.word_dict.get(word, 0) for word in sent][:sent_len]
+        sent_len_true = len(sent)
+        if len(sent) < sent_len:
+            sent += [0] * (sent_len - len(sent))
+        return sent, sent_len_true
+
+    def feature_lookup(self, idstr, idtype="pad"):
+        if idtype == 'expect':
+            row = self.exp_to_row[idstr]
+            docs = self.exp_docs[row]
+            doc_lens = self.exp_doc_lens[row]
+            raw_docs = self.exp_doc_raw[row]
+        elif idtype == "job":
+            row = self.job_to_row[idstr]
+            docs = self.job_docs[row]
+            doc_lens = self.job_doc_lens[row]
+            raw_docs = self.job_doc_raw[row]
+        else:
+            row = 0
+            docs = np.zeros_like(self.job_docs[0])
+            doc_lens = 0
+            raw_docs = np.zeros_like(self.job_doc_raw[0])
+        return [row, docs, doc_lens, raw_docs]
+
+    def tfrecord_generate(self, fpin, fpout):
+        tfrecord_out = tf.python_io.TFRecordWriter(fpout)
+        with open(fpin) as f:
+            for line in tqdm(f):
+                eid, jid, *labels = line.strip().split('\001')
+                labels = [int(x) for x in labels]
+                if jid not in self.job_to_row or eid not in self.exp_to_row:
+                    print('loss id')
+                    continue
+                job_id, jd, jd_lens, jd_raw = self.feature_lookup(jid, 'job')
+                exp_id, cv, cv_lens, cv_raw = self.feature_lookup(eid, 'expect')
+                feature = {
+                    "labels": tf.train.Feature(int64_list=tf.train.Int64List(value=labels)),
+                    "jids": tf.train.Feature(int64_list=tf.train.Int64List(value=[job_id])),
+                    "jds": tf.train.Feature(int64_list=tf.train.Int64List(value=jd)),
+                    "jd_lens": tf.train.Feature(int64_list=tf.train.Int64List(value=[jd_lens])),
+                    "pids": tf.train.Feature(int64_list=tf.train.Int64List(value=[exp_id])),
+                    "cvs": tf.train.Feature(int64_list=tf.train.Int64List(value=cv)),
+                    "cv_lens": tf.train.Feature(int64_list=tf.train.Int64List(value=[cv_lens])),
+                }
+                example = tf.train.Example(
+                    features=tf.train.Features(feature=feature)
+                )
+                serialized = example.SerializeToString()
+                tfrecord_out.write(serialized)
+        tfrecord_out.close()
+        return
+
+if __name__ == '__main__':
+    import os
+    print("work directory: ", os.getcwd())
+
+    dataset = "multi_data7_tech"
+    mix_data = MixData(
+        fpin='./data/{0}/{0}'.format(dataset),
+        wfreq=5,
+        doc_len=500,
+    )
+
+    # with open('./data/{0}/{0}.pkl2'.format(dataset), 'wb') as f:
+    #     pickle.dump(mix_data, f)
+
+    # fpin = "./data/{0}/{0}.train2".format(dataset)
+    # fpout = "./data/{0}/{0}.train2.tfrecord".format(dataset)
+    # mix_data.tfrecord_generate(fpin, fpout)
+
+    # fpin = "./data/{0}/{0}.test2".format(dataset)
+    # fpout = "./data/{0}/{0}.test2.tfrecord".format(dataset)
+    # mix_data.tfrecord_generate(fpin, fpout)
+
+
+
