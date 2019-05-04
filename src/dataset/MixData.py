@@ -58,7 +58,8 @@ class MixData:
             json.dump(
                 {
                     "n_word": len(self.word_dict),
-                    "n_id": len(self.exp_to_row) + len(self.job_to_row)
+                    "n_person": len(self.exp_to_row),
+                    "n_job": len(self.job_to_row),
                 },
                 f,
             )

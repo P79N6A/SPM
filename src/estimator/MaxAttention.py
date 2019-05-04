@@ -12,8 +12,8 @@ FEATURES = {
 }
 
 
-# def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
-def multi_head_attention(queries, keys, keys_length):
+# def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+def dynamic_attention(queries, keys, keys_length):
     """
     :param queries: [B, 3, 64]
     :param keys: [B, 500, 64]
@@ -87,7 +87,8 @@ def model_fn(features, labels, mode, params):
     :return:
     '''
     n_word = params["n_word"]
-    n_id = params["n_id"]
+    n_job = params["n_job"]
+    n_person = params["n_person"]
     emb_size = params["emb_size"]
     conv_size = params["conv_size"]
     n_attention = params["n_attention"]
@@ -120,19 +121,27 @@ def model_fn(features, labels, mode, params):
         cvs = cnn(cvs, conv_size)
 
     with tf.variable_scope("user_idx"):
-        id_emb = tf.Variable(
+        job_emb = tf.Variable(
             initial_value=tf.random_normal(
-                shape=(n_id, n_attention, emb_size),
+                shape=(n_job, n_attention, emb_size),
                 stddev=1 / n_word ** (1 / 2),
             ),
-            name="id_emb",
+            name="job_emb",
         )
-        j_queries = tf.nn.embedding_lookup(id_emb, jids)
-        p_queries = tf.nn.embedding_lookup(id_emb, pids)
+        j_queries = tf.nn.embedding_lookup(job_emb, jids)
+
+        person_emb = tf.Variable(
+            initial_value=tf.random_normal(
+                shape=(n_person, n_attention, emb_size),
+                stddev=1 / n_word ** (1 / 2),
+            ),
+            name="person_emb",
+        )        
+        p_queries = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs = multi_head_attention(j_queries, jds, jd_lens)
-        cv_weights, cv_weighted_vecs = multi_head_attention(p_queries, cvs, cv_lens)
+        jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds, jd_lens)
+        cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs, cv_lens)
 
     # j_emb = tf.reduce_mean(j_queries, axis=-2)
     # p_emb = tf.reduce_mean(p_queries, axis=-2)
