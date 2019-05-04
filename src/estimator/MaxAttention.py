@@ -12,7 +12,8 @@ FEATURES = {
 }
 
 
-def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+# def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+def multi_head_attention(queries, keys, keys_length):
     """
     :param queries: [B, 3, 64]
     :param keys: [B, 500, 64]
@@ -42,7 +43,7 @@ def multi_head_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     return weight, weighted_features
 
 
-def cnn(x: tf.Tensor, conv_size):
+def cnn(x, conv_size):
     x = tf.expand_dims(x, axis=-1)
     x = tf.layers.conv2d(
         inputs=x,
@@ -92,6 +93,7 @@ def model_fn(features, labels, mode, params):
     n_attention = params["n_attention"]
     dropout = params["dropout"]
     l2 = params["l2"]
+    lr = params["lr"]
 
     '''
     features是包含一个dict，key为特征名，value为原始特征Tensor
@@ -125,24 +127,24 @@ def model_fn(features, labels, mode, params):
             ),
             name="id_emb",
         )
-        jids = tf.nn.embedding_lookup(id_emb, jids)
-        pids = tf.nn.embedding_lookup(id_emb, pids)
+        j_queries = tf.nn.embedding_lookup(id_emb, jids)
+        p_queries = tf.nn.embedding_lookup(id_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs = multi_head_attention(pids, jds, jd_lens)
-        cv_weights, cv_weighted_vecs = multi_head_attention(jids, cvs, cv_lens)
+        jd_weights, jd_weighted_vecs = multi_head_attention(j_queries, jds, jd_lens)
+        cv_weights, cv_weighted_vecs = multi_head_attention(p_queries, cvs, cv_lens)
 
-    jids = tf.reduce_mean(jids, axis=-2)
-    pids = tf.reduce_mean(pids, axis=-2)
+    # j_emb = tf.reduce_mean(j_queries, axis=-2)
+    # p_emb = tf.reduce_mean(p_queries, axis=-2)
+    j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
+    p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds, axis=1)
         cv_global_vecs = tf.reduce_max(cvs, axis=1)
 
     features = tf.concat(
-        values=[jids, jd_global_vecs, jd_weighted_vecs, pids, cv_global_vecs, cv_weighted_vecs],
-        # values=[jids, jd_global_vecs, pids, cv_global_vecs],
-        # values=[jd_global_vecs, cv_global_vecs],
+        values=[j_emb, jd_global_vecs, jd_weighted_vecs, p_emb, cv_global_vecs, cv_weighted_vecs],
         axis=-1,
     )
 
@@ -186,6 +188,59 @@ def model_fn(features, labels, mode, params):
             labels=fit_label,
             predictions=tf.squeeze(probs),
         )
+
+        with tf.variable_scope("aux_loss"):
+            semantic_features = tf.concat(
+                values=[jd_global_vecs, cv_global_vecs],
+                axis=-1,
+            )
+            semantic_prob = tf.sigmoid(mlp(
+                semantic_features,
+                emb_dim=emb_size,
+                dropout=dropout,
+                training=(mode == tf.estimator.ModeKeys.TRAIN)
+            ))
+            semantic_loss = tf.losses.log_loss(
+                labels=fit_label,
+                predictions=tf.squeeze(semantic_prob),
+            )
+
+            jc_label = labels[:, 0]
+            jc_features = tf.concat(
+                values=[j_emb, cv_weighted_vecs],
+                axis=-1,
+            )
+            jc_prob = tf.sigmoid(mlp(
+                jc_features,
+                emb_dim=emb_size,
+                dropout=dropout,
+                training=(mode == tf.estimator.ModeKeys.TRAIN)
+            ))
+            jc_loss = tf.losses.log_loss(
+                labels=jc_label,
+                predictions=tf.squeeze(jc_prob)
+            )
+
+            cj_label = labels[:, 1]
+            cj_features = tf.concat(
+                values=[p_emb, jd_weighted_vecs],
+                axis=-1,
+            )
+            cj_prob = tf.sigmoid(mlp(
+                cj_features,
+                emb_dim=emb_size,
+                dropout=dropout,
+                training=(mode == tf.estimator.ModeKeys.TRAIN)
+            ))
+            cj_loss = tf.losses.log_loss(
+                labels=cj_label,
+                predictions=tf.squeeze(cj_prob)
+            )
+
+            variance = tf.reduce_sum(j_variance) + tf.reduce_sum(p_variance)
+
+            loss = loss + semantic_loss + jc_loss + cj_loss - variance
+
         if l2:
             l2_loss = sum([tf.nn.l2_loss(x) for x in tf.trainable_variables()])
             loss += l2_loss * l2
@@ -217,12 +272,12 @@ def model_fn(features, labels, mode, params):
     '''
     assert mode == tf.estimator.ModeKeys.TRAIN
 
-    optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+    optimizer = tf.train.AdagradOptimizer(learning_rate=lr)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
 
-def input_fn(filenames, batch_size=32, shuffle=False):
+def input_fn(filenames, batch_size=32, shuffle=0):
     print("parsing", filenames)
     def _parse_fn(record):
         features = {
@@ -241,7 +296,7 @@ def input_fn(filenames, batch_size=32, shuffle=False):
         _parse_fn, num_parallel_calls=multiprocessing.cpu_count()
     )
     if shuffle:
-        dataset = dataset.shuffle(buffer_size=256)
+        dataset = dataset.shuffle(buffer_size=shuffle)
     dataset = dataset.batch(batch_size)
     itetator = dataset.make_one_shot_iterator()
     batch_features, batch_labels = itetator.get_next()

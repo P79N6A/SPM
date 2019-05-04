@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
@@ -8,17 +9,20 @@ import json
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=100, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
-parser.add_argument("--n_epoch", default=10, type=int)
+parser.add_argument("--n_epoch", default=30, type=int)
+# parser.add_argument("--data_path", default="/ceph/szgpu/kuaibao/yuanhangqu/data/multi_data7", type=str)
 parser.add_argument("--data_path", default="./data/multi_data7/multi_data7", type=str)
 parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--n_attention", default=3, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
-parser.add_argument("--l2", default=1e-4, type=float)
+parser.add_argument("--l2", default=0, type=float)
+parser.add_argument("--lr", default=0.01, type=float)
 
 
 def main(argv):
     args = parser.parse_args(argv[1:])
+    print(args)
 
     with open("{}.param.json".format(args.data_path)) as f:
         params = json.load(f)
@@ -44,6 +48,7 @@ def main(argv):
             "n_attention": args.n_attention,
             "dropout": args.dropout,
             "l2": args.l2,
+            "lr": args.lr,
         },
     )
 
@@ -55,6 +60,7 @@ def main(argv):
         train_input_fn = lambda: estimator.input_fn(
             filenames="{}.train2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
+            shuffle=300000,
         )
 
         classifier.train(

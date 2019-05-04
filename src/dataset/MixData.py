@@ -4,12 +4,11 @@ import collections
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-import pickle
 import json
 
 
 class MixData:
-    def __init__(self, fpin, wfreq, doc_len):
+    def __init__(self, fpin, wfreq, doc_len, pre_w2v=""):
         self.fpin = fpin
         self.doc_len = doc_len
 
@@ -27,10 +26,23 @@ class MixData:
         fps = [
             '{}.profile.job'.format(fpin),
             '{}.profile.expect'.format(fpin)]
-        self.word_dict = self.build_dict(fps, wfreq)
+
+        pre_words = self.load_pretrain(pre_w2v)
+        self.word_dict = self.build_dict(fps, wfreq, pre_words)
+        self.dump_w2v(
+            pre_w2v,
+            self.word_dict,
+            dump_fp="{}.w2v".format(fpin),
+        )
+
         with open("{}.words.json".format(fpin), "w", encoding="utf8") as f:
             json.dump(self.word_dict, f, ensure_ascii=False, indent=2)
 
+        with open("{}.words.tsv".format(fpin), "w", encoding="utf8") as f:
+            f.write("Index\tLabel\n")
+            for k, v in self.word_dict.items():
+                line = "{}\t{}\n".format(v, k)
+                f.write(line)
         self.exp_to_row, self.exp_docs, self.exp_doc_lens, self.exp_doc_raw = self.build_features(
             fp='{}.profile.expect'.format(fpin),
             feature_name=exp_features_names,
@@ -52,7 +64,18 @@ class MixData:
             )
 
     @staticmethod
-    def build_dict(fps, w_freq):
+    def load_pretrain(fp):
+        if not fp:
+            return False
+        words = set()
+        with open(fp, encoding="utf8") as f:
+            for line in f:
+                word = line.split()[0]
+                words.add(word)
+        return words
+
+    @staticmethod
+    def build_dict(fps, w_freq, word_set=False):
         words = []
         for fp in fps:
             with open(fp, encoding="utf8") as f:
@@ -64,9 +87,23 @@ class MixData:
         words_freq = collections.Counter(words)
         word_list = [k for k, v in words_freq.items() if v >= w_freq]
         word_list = ['__pad__', '__unk__'] + word_list
-        word_dict = {k: v for v, k in enumerate(word_list)}
+        if word_set:
+            word_dict = {k: v for v, k in enumerate(word_list) if k in word_set}
+        else:
+            word_dict = {k: v for v, k in enumerate(word_list)}
         print('n_words: {}'.format(len(word_dict)), len(word_list))
         return word_dict
+
+    @staticmethod
+    def dump_w2v(pre_w2v, word_dict, dump_fp):
+        print("dump w2v ing ...")
+        with open(dump_fp, 'w') as fout:
+            with open(pre_w2v) as fin:
+                for line in tqdm(fin):
+                    word = line.split()[0]
+                    if word not in word_dict:
+                        continue
+                    fout.write(line)
 
     def build_features(self, fp, feature_name):
         n_feature = len(feature_name)
@@ -150,27 +187,24 @@ class MixData:
         tfrecord_out.close()
         return
 
+
 if __name__ == '__main__':
     import os
     print("work directory: ", os.getcwd())
 
-    dataset = "multi_data7_tech"
+    dataset = "multi_data7"
     mix_data = MixData(
         fpin='./data/{0}/{0}'.format(dataset),
-        wfreq=5,
+        wfreq=10,
         doc_len=500,
     )
 
-    # with open('./data/{0}/{0}.pkl2'.format(dataset), 'wb') as f:
-    #     pickle.dump(mix_data, f)
+    fpin = "./data/{0}/{0}.train2".format(dataset)
+    fpout = "./data/{0}/{0}.train2.tfrecord".format(dataset)
+    mix_data.tfrecord_generate(fpin, fpout)
 
-    # fpin = "./data/{0}/{0}.train2".format(dataset)
-    # fpout = "./data/{0}/{0}.train2.tfrecord".format(dataset)
-    # mix_data.tfrecord_generate(fpin, fpout)
-
-    # fpin = "./data/{0}/{0}.test2".format(dataset)
-    # fpout = "./data/{0}/{0}.test2.tfrecord".format(dataset)
-    # mix_data.tfrecord_generate(fpin, fpout)
-
+    fpin = "./data/{0}/{0}.test2".format(dataset)
+    fpout = "./data/{0}/{0}.test2.tfrecord".format(dataset)
+    mix_data.tfrecord_generate(fpin, fpout)
 
 

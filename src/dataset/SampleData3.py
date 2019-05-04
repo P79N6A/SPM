@@ -85,7 +85,7 @@ if __name__ == '__main__':
             test_frame = sample_new_pair(test_frame, train_frame)
         test_frame = calibration(test_frame, 0.1)
 
-    train_frame = train_frame.iloc[:300000]
+    train_frame = train_frame.iloc[:100000]
 
     test_frame = test_frame.iloc[:50000]
 
