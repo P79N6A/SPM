@@ -123,7 +123,7 @@ def model_fn(features, labels, mode, params):
     with tf.variable_scope("user_idx"):
         job_emb = tf.Variable(
             initial_value=tf.random_normal(
-                shape=(n_job, n_attention, emb_size),
+                shape=(n_job, n_attention+1, emb_size),
                 stddev=1 / n_job ** (1 / 2),
             ),
             name="job_emb",
@@ -133,7 +133,7 @@ def model_fn(features, labels, mode, params):
 
         person_emb = tf.Variable(
             initial_value=tf.random_normal(
-                shape=(n_person, n_attention, emb_size),
+                shape=(n_person, n_attention+1, emb_size),
                 stddev=1 / n_person ** (1 / 2),
             ),
             name="person_emb",
