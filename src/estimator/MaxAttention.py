@@ -304,9 +304,9 @@ def input_fn(filenames, batch_size=32, shuffle=0):
     dataset = tf.data.TFRecordDataset(filenames).map(
         _parse_fn, num_parallel_calls=multiprocessing.cpu_count()
     )
+    dataset = dataset.batch(batch_size)
     if shuffle:
         dataset = dataset.shuffle(buffer_size=shuffle)
-    dataset = dataset.batch(batch_size)
     itetator = dataset.make_one_shot_iterator()
     batch_features, batch_labels = itetator.get_next()
     return batch_features, batch_labels

@@ -27,13 +27,16 @@ class MixData:
             '{}.profile.job'.format(fpin),
             '{}.profile.expect'.format(fpin)]
 
-        pre_words = self.load_pretrain(pre_w2v)
-        self.word_dict = self.build_dict(fps, wfreq, pre_words)
-        self.dump_w2v(
-            pre_w2v,
-            self.word_dict,
-            dump_fp="{}.w2v".format(fpin),
-        )
+        if pre_w2v:
+            pre_words = self.load_pretrain(pre_w2v)
+            self.word_dict = self.build_dict(fps, wfreq, pre_words)
+            self.dump_w2v(
+                pre_w2v,
+                self.word_dict,
+                dump_fp="{}.w2v".format(fpin),
+            )
+        else:
+            self.word_dict = self.build_dict(fps, wfreq)
 
         with open("{}.words.json".format(fpin), "w", encoding="utf8") as f:
             json.dump(self.word_dict, f, ensure_ascii=False, indent=2)

@@ -1,0 +1,163 @@
+Stat to process os environment, size:66
+Env: [GLOG_v] = [1]
+Env: [HOME] = [/root]
+Env: [HOSTNAME] = [ff271104-704e-41a5-9a8c-79dd39b4aea0]
+Env: [K8SADAPTER_CONTAINER_SHM_SIZE_MB] = [31622]
+Env: [K8SADAPTER_DATA_QUOTA] = [700]
+Env: [K8SADAPTER_ROOT_QUOTA] = [50]
+Env: [KUBERNETES_PORT] = [tcp://192.168.0.1:443]
+Env: [KUBERNETES_PORT_443_TCP] = [tcp://192.168.0.1:443]
+Env: [KUBERNETES_PORT_443_TCP_ADDR] = [192.168.0.1]
+Env: [KUBERNETES_PORT_443_TCP_PORT] = [443]
+Env: [KUBERNETES_PORT_443_TCP_PROTO] = [tcp]
+Env: [KUBERNETES_SERVICE_HOST] = [192.168.0.1]
+Env: [KUBERNETES_SERVICE_PORT] = [443]
+Env: [KUBERNETES_SERVICE_PORT_HTTPS] = [443]
+Env: [LD_LIBRARY_PATH] = [/lib64:/usr/lib64:/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:/usr/local/app/miniconda3/lib:/usr/local/nccl/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64]
+Env: [LIBPROCESS_IP] = [9.73.149.66]
+Env: [LIBPROCESS_PORT] = [0]
+Env: [LOGNAME] = [root]
+Env: [MESOS_AGENT_ENDPOINT] = [9.73.149.66:5051]
+Env: [MESOS_CHECKPOINT] = [1]
+Env: [MESOS_DIRECTORY] = [/dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf]
+Env: [MESOS_EXECUTOR_ID] = [tensorflow_6832121.worker.0]
+Env: [MESOS_EXECUTOR_SHUTDOWN_GRACE_PERIOD] = [55secs]
+Env: [MESOS_FRAMEWORK_ID] = [tensorflow_6832121]
+Env: [MESOS_HTTP_COMMAND_EXECUTOR] = [0]
+Env: [MESOS_NATIVE_JAVA_LIBRARY] = [/usr/lib/libmesos-1.2.0.so]
+Env: [MESOS_NATIVE_LIBRARY] = [/usr/lib/libmesos-1.2.0.so]
+Env: [MESOS_RECOVERY_TIMEOUT] = [15mins]
+Env: [MESOS_SANDBOX] = [/dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf]
+Env: [MESOS_SLAVE_ID] = [PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051]
+Env: [MESOS_SLAVE_PID] = [slave(1)@9.73.149.66:5051]
+Env: [MESOS_SUBSCRIPTION_BACKOFF_MAX] = [2secs]
+Env: [NONE_CONTAINERIZER_HELP] = [false]
+Env: [NONE_CONTAINERIZER_LAUNCH_INFO] = [{"command":{"shell":true,"value":"export PYTHONPATH=$PYTHONPATH;export PATH=$PATH:\/usr\/local\/bin:\/bin:\/usr\/bin:\/usr\/local\/nvidia\/bin:\/usr\/local\/cuda-9.0\/bin:\/usr\/local\/cuda-8.0\/bin:\/usr\/local\/jdk\/bin:\/usr\/local\/jdk\/jre\/bin; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:\/usr\/local\/nvidia\/lib:\/usr\/local\/nvidia\/lib64:\/usr\/local\/cuda-9.0\/lib64\/:\/usr\/local\/cuda-9.0\/extras\/CUPTI\/lib64:\/usr\/local\/cuda-8.0\/lib64:\/usr\/local\/cuda-8.0\/extras\/CUPTI\/lib64; \/bin\/sh -c \"\/bin\/true; java -Xms8333m -Xmx37500m -cp ${MESOS_SANDBOX:-$MESOS_DIRECTORY}\/generalframework-0.1-SNAPSHOT-jar-with-dependencies.jar com.tencent.generalFramework.controller.driver.TensorflowExecutor\""},"environment":{"variables":[{"name":"LIBPROCESS_IP","value":"9.73.149.66"},{"name":"LIBPROCESS_PORT","value":"0"},{"name":"MESOS_AGENT_ENDPOINT","value":"9.73.149.66:5051"},{"name":"MESOS_CHECKPOINT","value":"1"},{"name":"MESOS_DIRECTORY","value":"\/dockerdata\/mesos\/slave_data\/slaves\/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051\/frameworks\/tensorflow_6832121\/executors\/tensorflow_6832121.worker.0\/runs\/71048878-e1e1-43a3-a6ac-498f535a0abf"},{"name":"MESOS_EXECUTOR_ID","value":"tensorflow_6832121.worker.0"},{"name":"MESOS_EXECUTOR_SHUTDOWN_GRACE_PERIOD","value":"55secs"},{"name":"MESOS_FRAMEWORK_ID","value":"tensorflow_6832121"},{"name":"MESOS_HTTP_COMMAND_EXECUTOR","value":"0"},{"name":"MESOS_NATIVE_JAVA_LIBRARY","value":"\/usr\/lib\/libmesos-1.2.0.so"},{"name":"MESOS_NATIVE_LIBRARY","value":"\/usr\/lib\/libmesos-1.2.0.so"},{"name":"MESOS_RECOVERY_TIMEOUT","value":"15mins"},{"name":"MESOS_SLAVE_ID","value":"PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051"},{"name":"MESOS_SLAVE_PID","value":"slave(1)@9.73.149.66:5051"},{"name":"MESOS_SUBSCRIPTION_BACKOFF_MAX","value":"2secs"},{"name":"PRAJNA_APP_INST_ID","value":"tensorflow_6832121"}]},"working_directory":"\/dockerdata\/mesos\/slave_data\/slaves\/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051\/frameworks\/tensorflow_6832121\/executors\/tensorflow_6832121.worker.0\/runs\/71048878-e1e1-43a3-a6ac-498f535a0abf"}]
+Env: [NVIDIA_DRIVER_CAPABILITIES] = [video,compute,utility]
+Env: [NVIDIA_VISIBLE_DEVICES] = [GPU-3688d43b-952f-c62b-8845-2ba23fcd0bd3,GPU-d72a784f-1aae-5a08-5b1d-2fb162ae669a]
+Env: [PATH] = [/usr/local/app/miniconda3/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin]
+Env: [PRAJNA_APP_INST_ID] = [tensorflow_6832121]
+Env: [PRAJNA_RESOURCE_ID] = [tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56]
+Env: [PWD] = [/usr/local/app]
+Env: [PYTHONPATH] = []
+Env: [SHELL] = [/bin/bash]
+Env: [SHLVL] = [6]
+Env: [SUDO_COMMAND] = [/bin/bash -c export PYTHONPATH=;export PATH=/usr/local/app/miniconda3/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin;export LD_LIBRARY_PATH=/lib64:/usr/lib64:/lib:/usr/lib:/usr/lib/x86_64-linux-gnu:/usr/local/app/miniconda3/lib:/usr/local/nccl/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64;/dockerdata/mesos/util/do_start_agent.sh zk://prajna-eb.zk1.sumeru.mig:2181,prajna-eb.zk2.sumeru.mig:2181,prajna-eb.zk3.sumeru.mig:2181/mesos >> /tmp/error.info 2>&1]
+Env: [SUDO_GID] = [500]
+Env: [SUDO_UID] = [500]
+Env: [SUDO_USER] = [mqq]
+Env: [TERM] = [unknown]
+Env: [TST_HACK_BASH_SESSION_ID] = [108931207760]
+Env: [TVMEC_GPU_SHARE] = [FALSE]
+Env: [USER] = [root]
+Env: [USERNAME] = [root]
+Env: [_] = [/usr/bin/nohup]
+Env: [aabbcc] = [36000]
+Env: [ceph_failed_url] = [http://sw1.prajna-rs.wsd.com/api/v1/app/reportOutBGCephFailed]
+Env: [ceph_info] = [szgpu:10756:/ceph/szgpu/kuaibao]
+Env: [execute_url] = [http://s3sz.sumeru.mig/borepacages:packages/formal/share_res/do_start_agent.sh]
+Env: [mesos_install] = [1]
+Env: [res_cpu] = [16]
+Env: [res_disk] = [102400]
+Env: [res_gpu] = [2]
+Env: [res_mem] = [50000]
+Env: [res_port0] = [10000]
+Env: [res_port1] = [30000]
+Env: [root_pwd] = [aZOAvXvi5v3dj@8]
+Env: [slave_port] = [5051]
+Overwriting launchinfo environment variable 'LIBPROCESS_IP', original: '9.73.149.66', new: '9.73.149.66'
+Env: [LIBPROCESS_IP] = [9.73.149.66]
+Overwriting launchinfo environment variable 'LIBPROCESS_PORT', original: '0', new: '0'
+Env: [LIBPROCESS_PORT] = [0]
+Overwriting launchinfo environment variable 'MESOS_AGENT_ENDPOINT', original: '9.73.149.66:5051', new: '9.73.149.66:5051'
+Env: [MESOS_AGENT_ENDPOINT] = [9.73.149.66:5051]
+Overwriting launchinfo environment variable 'MESOS_CHECKPOINT', original: '1', new: '1'
+Env: [MESOS_CHECKPOINT] = [1]
+Overwriting launchinfo environment variable 'MESOS_DIRECTORY', original: '/dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf', new: '/dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf'
+Env: [MESOS_DIRECTORY] = [/dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf]
+Overwriting launchinfo environment variable 'MESOS_EXECUTOR_ID', original: 'tensorflow_6832121.worker.0', new: 'tensorflow_6832121.worker.0'
+Env: [MESOS_EXECUTOR_ID] = [tensorflow_6832121.worker.0]
+Overwriting launchinfo environment variable 'MESOS_EXECUTOR_SHUTDOWN_GRACE_PERIOD', original: '55secs', new: '55secs'
+Env: [MESOS_EXECUTOR_SHUTDOWN_GRACE_PERIOD] = [55secs]
+Overwriting launchinfo environment variable 'MESOS_FRAMEWORK_ID', original: 'tensorflow_6832121', new: 'tensorflow_6832121'
+Env: [MESOS_FRAMEWORK_ID] = [tensorflow_6832121]
+Overwriting launchinfo environment variable 'MESOS_HTTP_COMMAND_EXECUTOR', original: '0', new: '0'
+Env: [MESOS_HTTP_COMMAND_EXECUTOR] = [0]
+Overwriting launchinfo environment variable 'MESOS_NATIVE_JAVA_LIBRARY', original: '/usr/lib/libmesos-1.2.0.so', new: '/usr/lib/libmesos-1.2.0.so'
+Env: [MESOS_NATIVE_JAVA_LIBRARY] = [/usr/lib/libmesos-1.2.0.so]
+Overwriting launchinfo environment variable 'MESOS_NATIVE_LIBRARY', original: '/usr/lib/libmesos-1.2.0.so', new: '/usr/lib/libmesos-1.2.0.so'
+Env: [MESOS_NATIVE_LIBRARY] = [/usr/lib/libmesos-1.2.0.so]
+Overwriting launchinfo environment variable 'MESOS_RECOVERY_TIMEOUT', original: '15mins', new: '15mins'
+Env: [MESOS_RECOVERY_TIMEOUT] = [15mins]
+Overwriting launchinfo environment variable 'MESOS_SLAVE_ID', original: 'PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051', new: 'PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051'
+Env: [MESOS_SLAVE_ID] = [PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051]
+Overwriting launchinfo environment variable 'MESOS_SLAVE_PID', original: 'slave(1)@9.73.149.66:5051', new: 'slave(1)@9.73.149.66:5051'
+Env: [MESOS_SLAVE_PID] = [slave(1)@9.73.149.66:5051]
+Overwriting launchinfo environment variable 'MESOS_SUBSCRIPTION_BACKOFF_MAX', original: '2secs', new: '2secs'
+Env: [MESOS_SUBSCRIPTION_BACKOFF_MAX] = [2secs]
+Overwriting launchinfo environment variable 'PRAJNA_APP_INST_ID', original: 'tensorflow_6832121', new: 'tensorflow_6832121'
+Env: [PRAJNA_APP_INST_ID] = [tensorflow_6832121]
+Start to execute command:[ cd /dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf; ${MESOS_SANDBOX:-$MESOS_DIRECTORY}/src/main.py  --n_epoch 10 --n_attention 2 --data_path /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7 ]
+Namespace(batch_size=100, conv_size=5, data_path='/ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7', dropout=0.3, emb_size=64, l2=0, lr=0.01, model='SPM', n_attention=2, n_epoch=10, train_steps=1000)
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 1
+Test set auc: 0.7353746294975281
+Test set loss: 1.243932843208313
+Test set global_step: 16903
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 2
+Test set auc: 0.7596815228462219
+Test set loss: -2.4333384037017822
+Test set global_step: 33806
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 3
+Test set auc: 0.7761371731758118
+Test set loss: -11.147693634033203
+Test set global_step: 50709
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 4
+Test set auc: 0.7892471551895142
+Test set loss: -25.042179107666016
+Test set global_step: 67612
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 5
+Test set auc: 0.8017154335975647
+Test set loss: -43.30104064941406
+Test set global_step: 84515
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 6
+Test set auc: 0.8116647601127625
+Test set loss: -65.10819244384766
+Test set global_step: 101418
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 7
+Test set auc: 0.8186708092689514
+Test set loss: -89.84980010986328
+Test set global_step: 118321
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 8
+Test set auc: 0.8233681321144104
+Test set loss: -117.03845977783203
+Test set global_step: 135224
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 9
+Test set auc: 0.8264803290367126
+Test set loss: -146.2391357421875
+Test set global_step: 152127
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 10
+Test set auc: 0.8208767771720886
+Test set loss: -177.17938232421875
+Test set global_step: 169030
+Exported to b'export/1557030545'
+Finish to execute command:[ cd /dockerdata/mesos/slave_data/slaves/PRAJNA-tensorflow_6832121.7749743b-8ffe-44a2-9840-25e91a2b0a56-H9.73.149.66-P5051/frameworks/tensorflow_6832121/executors/tensorflow_6832121.worker.0/runs/71048878-e1e1-43a3-a6ac-498f535a0abf; ${MESOS_SANDBOX:-$MESOS_DIRECTORY}/src/main.py  --n_epoch 10 --n_attention 2 --data_path /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7 ], with exit code: 0

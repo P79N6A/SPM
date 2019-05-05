@@ -2,22 +2,30 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-import estimator.MaxAttention as estimator
+from estimator import MaxAttention
+from estimator import PNN
 import time
 import json
 
 parser = argparse.ArgumentParser()
+# data
 parser.add_argument('--batch_size', default=100, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
-parser.add_argument("--data_path", default="/ceph/szgpu/kuaibao/yuanhangqu/data/multi_data7", type=str)
-# parser.add_argument("--data_path", default="./data/multi_data7/multi_data7", type=str)
+# parser.add_argument("--data_path",
+#     default="/ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7", type=str)
+parser.add_argument("--data_path", default="./data/multi_data7/multi_data7", type=str)
+# common params
 parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
-parser.add_argument("--n_attention", default=3, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
-parser.add_argument("--l2", default=0, type=float)
+parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
+parser.add_argument("--logdir", default="./model/{}".format(int(time.time())), type=str)
+# model select
+parser.add_argument("--model", default="SPM", type=str)
+# SPM
+parser.add_argument("--n_attention", default=3, type=int)
 
 
 def main(argv):
@@ -36,14 +44,20 @@ def main(argv):
     自定义DNN
     model_fn是模型定义
     '''
+    models = {
+        "SPM": MaxAttention,
+        "PNN": PNN,
+    }
+    my_estimator = models[args.model]
     classifier = tf.estimator.Estimator(
-        model_fn=estimator.model_fn,
-        model_dir="./model/{}".format(int(time.time())),
+        model_fn=my_estimator.model_fn,
+        model_dir=args.logdir,
         config=run_config,
         params={
             "emb_size": args.emb_size,
             "n_word": params["n_word"],
-            "n_id": params["n_id"],
+            "n_job": params["n_job"],
+            "n_person": params["n_person"],
             "conv_size": args.conv_size,
             "n_attention": args.n_attention,
             "dropout": args.dropout,
@@ -57,10 +71,10 @@ def main(argv):
     train方法需要输入无参方法提供数据
     '''
     for epoch in range(1, args.n_epoch + 1):
-        train_input_fn = lambda: estimator.input_fn(
+        train_input_fn = lambda: my_estimator.input_fn(
             filenames="{}.train2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
-            shuffle=300000,
+            shuffle=args.batch_size,
         )
 
         classifier.train(
@@ -69,7 +83,7 @@ def main(argv):
         )
 
         # Evaluate the model.
-        eval_input_fn = lambda: estimator.input_fn(
+        eval_input_fn = lambda: my_estimator.input_fn(
             filenames="{}.test2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
         )
@@ -87,7 +101,7 @@ def main(argv):
     导出estimator为pb模型文件，需要提供serving_input_receiver_fn方法
     '''
     # TensorFolw standard serving input, for tensorflow serving
-    serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(estimator.FEATURES)
+    serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(my_estimator.FEATURES)
     export_dir = classifier.export_savedmodel('export', serving_input_receiver_fn)
     print('Exported to {}'.format(export_dir))
 
