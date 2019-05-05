@@ -1,0 +1,133 @@
+Executing pre-exec command '{"arguments":["mesos-containerizer","mount","--help=false","--operation=make-rslave","--path=\/"],"shell":false,"value":"\/usr\/libexec\/mesos\/mesos-containerizer"}'
+Executing pre-exec command '{"arguments":["mount","-n","--rbind","\/data\/home\/mesos\/slave_data\/slaves\/2443b257-fcbe-4198-ab13-b1059d6988c4-S57\/frameworks\/tensorflow_6835847\/executors\/tensorflow_6835847.worker.0\/runs\/46c42b52-4c5a-4dbd-b8e5-75c28af8817a","\/data1\/home\/mesos\/slave_data\/provisioner\/containers\/46c42b52-4c5a-4dbd-b8e5-75c28af8817a\/backends\/aufs\/rootfses\/63baa522-0f21-4bfa-9c60-03e9a2014e66\/mnt\/mesos\/sandbox"],"shell":false,"value":"mount"}'
+Executing pre-exec command '{"arguments":["mount","-n","--rbind","\/mesos-mount\/tensorflow_6835847","\/data1\/home\/mesos\/slave_data\/provisioner\/containers\/46c42b52-4c5a-4dbd-b8e5-75c28af8817a\/backends\/aufs\/rootfses\/63baa522-0f21-4bfa-9c60-03e9a2014e66\/ceph\/szgpu\/kuaibao"],"shell":false,"value":"mount"}'
+Executing pre-exec command '{"arguments":["mount","-n","--rbind","\/usr\/local\/cuda-9.0","\/data1\/home\/mesos\/slave_data\/provisioner\/containers\/46c42b52-4c5a-4dbd-b8e5-75c28af8817a\/backends\/aufs\/rootfses\/63baa522-0f21-4bfa-9c60-03e9a2014e66\/usr\/local\/cuda-9.0"],"shell":false,"value":"mount"}'
+Executing pre-exec command '{"arguments":["mount","-n","--rbind","\/usr\/local\/nvidia","\/data1\/home\/mesos\/slave_data\/provisioner\/containers\/46c42b52-4c5a-4dbd-b8e5-75c28af8817a\/backends\/aufs\/rootfses\/63baa522-0f21-4bfa-9c60-03e9a2014e66\/usr\/local\/nvidia"],"shell":false,"value":"mount"}'
+Executing pre-exec command '{"shell":true,"value":"mount -n -t proc proc \/proc -o nosuid,noexec,nodev"}'
+Changing root to /data1/home/mesos/slave_data/provisioner/containers/46c42b52-4c5a-4dbd-b8e5-75c28af8817a/backends/aufs/rootfses/63baa522-0f21-4bfa-9c60-03e9a2014e66
+shm size:20480
+Overwriting environment variable 'PRAJNA_APP_INST_ID', original: 'tensorflow_6835847', new: 'tensorflow_6835847'
+Start to execute command:[ cd /mnt/mesos/sandbox; ${MESOS_SANDBOX:-$MESOS_DIRECTORY}/src/main.py  --n_epoch 20 --n_attention 4 ]
+Namespace(batch_size=100, conv_size=5, data_path='/ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7', dropout=0.3, emb_size=64, l2=0, lr=0.01, model='SPM', n_attention=4, n_epoch=20, train_steps=1000)
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 1
+Test set auc: 0.7348586320877075
+Test set loss: 1.5927133560180664
+Test set global_step: 16903
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 2
+Test set auc: 0.7543205618858337
+Test set loss: 0.8384972214698792
+Test set global_step: 33806
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 3
+Test set auc: 0.771111786365509
+Test set loss: -1.39531672000885
+Test set global_step: 50709
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 4
+Test set auc: 0.7835553288459778
+Test set loss: -5.761324405670166
+Test set global_step: 67612
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 5
+Test set auc: 0.7961287498474121
+Test set loss: -12.582772254943848
+Test set global_step: 84515
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 6
+Test set auc: 0.8070740699768066
+Test set loss: -21.798213958740234
+Test set global_step: 101418
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 7
+Test set auc: 0.8151958584785461
+Test set loss: -33.3597526550293
+Test set global_step: 118321
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 8
+Test set auc: 0.8196557760238647
+Test set loss: -47.15638732910156
+Test set global_step: 135224
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 9
+Test set auc: 0.8233209252357483
+Test set loss: -63.016265869140625
+Test set global_step: 152127
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 10
+Test set auc: 0.8271658420562744
+Test set loss: -80.78317260742188
+Test set global_step: 169030
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 11
+Test set auc: 0.8281498551368713
+Test set loss: -100.31576538085938
+Test set global_step: 185933
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 12
+Test set auc: 0.820310115814209
+Test set loss: -121.45294952392578
+Test set global_step: 202836
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 13
+Test set auc: 0.8121878504753113
+Test set loss: -144.09124755859375
+Test set global_step: 219739
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 14
+Test set auc: 0.8002482056617737
+Test set loss: -168.0635528564453
+Test set global_step: 236642
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 15
+Test set auc: 0.7951762080192566
+Test set loss: -193.31524658203125
+Test set global_step: 253545
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 16
+Test set auc: 0.7840861082077026
+Test set loss: -219.69268798828125
+Test set global_step: 270448
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 17
+Test set auc: 0.7748879194259644
+Test set loss: -247.13156127929688
+Test set global_step: 287351
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 18
+Test set auc: 0.7652239203453064
+Test set loss: -275.54437255859375
+Test set global_step: 304254
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 19
+Test set auc: 0.7654585242271423
+Test set loss: -304.87860107421875
+Test set global_step: 321157
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.train2.tfrecord
+parsing /ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7.test2.tfrecord
+Epoch: 20
+Test set auc: 0.7575398087501526
+Test set loss: -335.0208435058594
+Test set global_step: 338060
+Exported to b'export/1557054790'
+Finish to execute command:[ cd /mnt/mesos/sandbox; ${MESOS_SANDBOX:-$MESOS_DIRECTORY}/src/main.py  --n_epoch 20 --n_attention 4 ], with exit code: 0

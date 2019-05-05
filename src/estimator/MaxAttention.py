@@ -124,20 +124,22 @@ def model_fn(features, labels, mode, params):
         job_emb = tf.Variable(
             initial_value=tf.random_normal(
                 shape=(n_job, n_attention, emb_size),
-                stddev=1 / n_word ** (1 / 2),
+                stddev=1 / n_job ** (1 / 2),
             ),
             name="job_emb",
         )
-        j_queries = tf.nn.embedding_lookup(job_emb, jids)
+        j_emb = tf.nn.embedding_lookup(job_emb, jids)[:, 0, :]
+        j_queries = tf.nn.embedding_lookup(job_emb, jids)[:, 1:, :]
 
         person_emb = tf.Variable(
             initial_value=tf.random_normal(
                 shape=(n_person, n_attention, emb_size),
-                stddev=1 / n_word ** (1 / 2),
+                stddev=1 / n_person ** (1 / 2),
             ),
             name="person_emb",
-        )        
-        p_queries = tf.nn.embedding_lookup(person_emb, pids)
+        )
+        p_emb = tf.nn.embedding_lookup(person_emb, pids)[:, 0, :]
+        p_queries = tf.nn.embedding_lookup(person_emb, pids)[:, 1:, :]
 
     with tf.variable_scope("attention"):
         jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds, jd_lens)
@@ -145,8 +147,8 @@ def model_fn(features, labels, mode, params):
 
     # j_emb = tf.reduce_mean(j_queries, axis=-2)
     # p_emb = tf.reduce_mean(p_queries, axis=-2)
-    j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
-    p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
+    _, j_variance = tf.nn.moments(j_queries, axes=-2)
+    _, p_variance = tf.nn.moments(p_queries, axes=-2)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds, axis=1)
@@ -248,7 +250,7 @@ def model_fn(features, labels, mode, params):
 
             variance = tf.reduce_sum(j_variance) + tf.reduce_sum(p_variance)
 
-            loss = loss + semantic_loss + jc_loss + cj_loss - variance
+            loss = loss + semantic_loss + jc_loss + cj_loss - 2 * variance
 
         if l2:
             l2_loss = sum([tf.nn.l2_loss(x) for x in tf.trainable_variables()])
