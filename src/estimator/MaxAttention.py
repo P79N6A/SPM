@@ -39,7 +39,7 @@ def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     weighted_features = tf.matmul(weight, keys)  # [B, 1, 64]
     weighted_features = tf.squeeze(weighted_features, axis=1) # [B, 64]
 
-    return weight, weighted_features
+    return scores, weighted_features
 
 
 def cnn(x, conv_size):
@@ -75,6 +75,15 @@ def mlp(features, emb_dim, dropout, training):
         units=1,
     )
     return predict
+
+
+def cosine(jd, cv):
+    norms1 = tf.sqrt(tf.reduce_sum(tf.square(jd), 1, keepdims=False))
+    norms2 = tf.sqrt(tf.reduce_sum(tf.square(cv), 1, keepdims=False))
+    dot = tf.reduce_sum(jd * cv, 1)
+    cos_dis = tf.divide(dot, (norms1 * norms2))
+    similarity = tf.divide((cos_dis + 1.0), 2.0, name="output")
+    return similarity
 
 
 def model_fn(features, labels, mode, params):
@@ -198,48 +207,59 @@ def model_fn(features, labels, mode, params):
         )
 
         with tf.variable_scope("aux_loss"):
-            semantic_features = tf.concat(
-                values=[jd_global_vecs, cv_global_vecs],
-                axis=-1,
-            )
-            semantic_prob = tf.sigmoid(mlp(
-                semantic_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
+            # semantic_features = tf.concat(
+            #     values=[jd_global_vecs, cv_global_vecs],
+            #     axis=-1,
+            # )
+            # semantic_prob = tf.sigmoid(mlp(
+            #     semantic_features,
+            #     emb_dim=emb_size,
+            #     dropout=dropout,
+            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
+            # ))
+
+            # semantic_prob = cosine(jd_global_vecs, cv_global_vecs)
+
+            semantic_prob = tf.multiply(jd_global_vecs, cv_global_vecs)
+            semantic_prob = tf.reduce_sum(semantic_prob, axis=-1)
+            semantic_prob = tf.nn.sigmoid(semantic_prob)
+
             semantic_loss = tf.losses.log_loss(
                 labels=fit_label,
                 predictions=tf.squeeze(semantic_prob),
             )
 
+
+
             jc_label = labels[:, 0]
-            jc_features = tf.concat(
-                values=[j_emb, cv_weighted_vecs],
-                axis=-1,
-            )
-            jc_prob = tf.sigmoid(mlp(
-                jc_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
+            # jc_features = tf.concat(
+            #     values=[j_emb, cv_weighted_vecs],
+            #     axis=-1,
+            # )
+            # jc_prob = tf.sigmoid(mlp(
+            #     jc_features,
+            #     emb_dim=emb_size,
+            #     dropout=dropout,
+            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
+            # ))
+            jc_prob = tf.nn.sigmoid(tf.reduce_sum(cv_weights, axis=-1))
             jc_loss = tf.losses.log_loss(
                 labels=jc_label,
                 predictions=tf.squeeze(jc_prob)
             )
 
             cj_label = labels[:, 1]
-            cj_features = tf.concat(
-                values=[p_emb, jd_weighted_vecs],
-                axis=-1,
-            )
-            cj_prob = tf.sigmoid(mlp(
-                cj_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
+            # cj_features = tf.concat(
+            #     values=[p_emb, jd_weighted_vecs],
+            #     axis=-1,
+            # )
+            # cj_prob = tf.sigmoid(mlp(
+            #     cj_features,
+            #     emb_dim=emb_size,
+            #     dropout=dropout,
+            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
+            # ))
+            cj_prob = tf.nn.sigmoid(tf.reduce_sum(jd_weights, axis=-1))
             cj_loss = tf.losses.log_loss(
                 labels=cj_label,
                 predictions=tf.squeeze(cj_prob)
