@@ -17,7 +17,7 @@ parser.add_argument("--data_path", default="./data/multi_data7/tfrecord/multi_da
 parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
-parser.add_argument("--l2", default=0, type=float)
+parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="./model/{}".format(int(time.time())), type=str)
 # model select

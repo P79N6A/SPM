@@ -12,8 +12,7 @@ FEATURES = {
 }
 
 
-# def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
-def dynamic_attention(queries, keys, keys_length):
+def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     """
     :param queries: [B, 3, 64]
     :param keys: [B, 500, 64]
@@ -115,10 +114,10 @@ def model_fn(features, labels, mode, params):
             ),
             name="word_emb",
         )
-        jds = tf.nn.embedding_lookup(word_emb, jds)
-        jds = cnn(jds, conv_size)
-        cvs = tf.nn.embedding_lookup(word_emb, cvs)
-        cvs = cnn(cvs, conv_size)
+        jds_emb = tf.nn.embedding_lookup(word_emb, jds)
+        jds_conv = cnn(jds_emb, conv_size)
+        cvs_emb = tf.nn.embedding_lookup(word_emb, cvs)
+        cvs_conv = cnn(cvs_emb, conv_size)
 
     with tf.variable_scope("user_idx"):
         job_emb = tf.Variable(
@@ -140,8 +139,8 @@ def model_fn(features, labels, mode, params):
         p_queries = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds, jd_lens)
-        cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs, cv_lens)
+        jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
+        cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs_conv, cv_lens)
 
     # j_emb = tf.reduce_mean(j_queries, axis=-2)
     # p_emb = tf.reduce_mean(p_queries, axis=-2)
@@ -149,8 +148,8 @@ def model_fn(features, labels, mode, params):
     p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
 
     with tf.variable_scope("pooling"):
-        jd_global_vecs = tf.reduce_max(jds, axis=1)
-        cv_global_vecs = tf.reduce_max(cvs, axis=1)
+        jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
+        cv_global_vecs = tf.reduce_max(cvs_conv, axis=1)
 
     features = tf.concat(
         values=[j_emb, jd_global_vecs, jd_weighted_vecs, p_emb, cv_global_vecs, cv_weighted_vecs],
@@ -251,7 +250,13 @@ def model_fn(features, labels, mode, params):
             loss = loss + semantic_loss + jc_loss + cj_loss - variance
 
         if l2:
-            l2_loss = sum([tf.nn.l2_loss(x) for x in tf.trainable_variables()])
+            l2_params = [
+                jds_emb,
+                cvs_emb,
+                j_queries,
+                p_queries
+            ]
+            l2_loss = sum([tf.nn.l2_loss(x) for x in l2_params])
             loss += l2_loss * l2
 
         auc = tf.metrics.auc(
