@@ -292,7 +292,7 @@ def model_fn(features, labels, mode, params):
     scalar记录单个值
     histogram记录一个张量的值分布
     '''
-    tf.summary.scalar("auc", auc[0])
+    # tf.summary.scalar("auc", auc[0])
 
     '''
     指定estimator.evaluate的操作
@@ -308,7 +308,7 @@ def model_fn(features, labels, mode, params):
 
     optimizer = tf.train.AdagradOptimizer(learning_rate=lr)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
-    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, eval_metric_ops=metrics)
 
 
 def input_fn(filenames, batch_size=32, shuffle=0):
