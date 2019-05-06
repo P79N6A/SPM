@@ -86,6 +86,21 @@ def cosine(jd, cv):
     return similarity
 
 
+def queries_similarity(queries):
+    batch_size, n_attention, emb_size = queries.shape.as_list()
+    masks = tf.sequence_mask(list(range(n_attention)), n_attention)
+    masks = tf.expand_dims(masks, axis=0)
+    masks = tf.tile(masks, [batch_size, 1, 1])
+    padding = tf.zeros_like(masks)
+
+    inner_product = tf.matmul(queries, queries, transpose_b=True)
+    inner_product = tf.where(masks, inner_product, padding)
+
+    similarity = tf.reduce_sum(inner_product)
+
+    return similarity
+
+
 def model_fn(features, labels, mode, params):
     '''
     :param features: dict of tf.Tensor
@@ -114,6 +129,8 @@ def model_fn(features, labels, mode, params):
     pids = features["pids"]
     cvs = features["cvs"]
     cv_lens = features["cv_lens"]
+
+    batch_size = jids.shape().as_list()[0]
 
     with tf.variable_scope("CNN"):
         word_emb = tf.Variable(
@@ -151,10 +168,10 @@ def model_fn(features, labels, mode, params):
         jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
         cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs_conv, cv_lens)
 
-    # j_emb = tf.reduce_mean(j_queries, axis=-2)
-    # p_emb = tf.reduce_mean(p_queries, axis=-2)
-    j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
-    p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
+    j_emb = tf.reduce_mean(j_queries, axis=-2)
+    p_emb = tf.reduce_mean(p_queries, axis=-2)
+    # j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
+    # p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
@@ -207,18 +224,6 @@ def model_fn(features, labels, mode, params):
         )
 
         with tf.variable_scope("aux_loss"):
-            # semantic_features = tf.concat(
-            #     values=[jd_global_vecs, cv_global_vecs],
-            #     axis=-1,
-            # )
-            # semantic_prob = tf.sigmoid(mlp(
-            #     semantic_features,
-            #     emb_dim=emb_size,
-            #     dropout=dropout,
-            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
-            # ))
-
-            # semantic_prob = cosine(jd_global_vecs, cv_global_vecs)
 
             semantic_prob = tf.multiply(jd_global_vecs, cv_global_vecs)
             semantic_prob = tf.reduce_sum(semantic_prob, axis=-1)
@@ -229,19 +234,7 @@ def model_fn(features, labels, mode, params):
                 predictions=tf.squeeze(semantic_prob),
             )
 
-
-
             jc_label = labels[:, 0]
-            # jc_features = tf.concat(
-            #     values=[j_emb, cv_weighted_vecs],
-            #     axis=-1,
-            # )
-            # jc_prob = tf.sigmoid(mlp(
-            #     jc_features,
-            #     emb_dim=emb_size,
-            #     dropout=dropout,
-            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
-            # ))
             jc_prob = tf.nn.sigmoid(tf.reduce_sum(cv_weights, axis=-1))
             jc_loss = tf.losses.log_loss(
                 labels=jc_label,
@@ -249,25 +242,20 @@ def model_fn(features, labels, mode, params):
             )
 
             cj_label = labels[:, 1]
-            # cj_features = tf.concat(
-            #     values=[p_emb, jd_weighted_vecs],
-            #     axis=-1,
-            # )
-            # cj_prob = tf.sigmoid(mlp(
-            #     cj_features,
-            #     emb_dim=emb_size,
-            #     dropout=dropout,
-            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
-            # ))
             cj_prob = tf.nn.sigmoid(tf.reduce_sum(jd_weights, axis=-1))
             cj_loss = tf.losses.log_loss(
                 labels=cj_label,
                 predictions=tf.squeeze(cj_prob)
             )
 
-            variance = tf.reduce_sum(j_variance) + tf.reduce_sum(p_variance)
+            # variance = tf.reduce_sum(j_variance) + tf.reduce_sum(p_variance)
 
-            loss = loss + semantic_loss + jc_loss + cj_loss - variance
+            # loss = loss + semantic_loss + jc_loss + cj_loss - variance
+
+            j_queries_simi = queries_similarity(j_queries)
+            p_queries_simi = queries_similarity(p_queries)
+
+            loss = loss + semantic_loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
 
         if l2:
             l2_params = [
