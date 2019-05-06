@@ -89,12 +89,13 @@ def cosine(jd, cv):
 def queries_similarity(queries):
     batch_size, n_attention, emb_size = queries.shape.as_list()
     masks = tf.sequence_mask(list(range(n_attention)), n_attention)
-    masks = tf.expand_dims(masks, axis=0)
-    masks = tf.tile(masks, [batch_size, 1, 1])
-    padding = tf.zeros_like(masks)
+    padding = tf.zeros_like(masks, dtype=tf.float32)
 
     inner_product = tf.matmul(queries, queries, transpose_b=True)
-    inner_product = tf.where(masks, inner_product, padding)
+    inner_product = tf.map_fn(
+        lambda x: tf.where(masks, x, padding),
+        inner_product,
+    )
 
     similarity = tf.reduce_sum(inner_product)
 
@@ -129,8 +130,6 @@ def model_fn(features, labels, mode, params):
     pids = features["pids"]
     cvs = features["cvs"]
     cv_lens = features["cv_lens"]
-
-    batch_size = jids.shape().as_list()[0]
 
     with tf.variable_scope("CNN"):
         word_emb = tf.Variable(
