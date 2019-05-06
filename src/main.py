@@ -12,14 +12,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=100, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
-# parser.add_argument("--data_path",
-#     default="/ceph/szgpu/kuaibao/yuanhangqu/SPM/data/multi_data7/tfrecord/multi_data7", type=str)
-parser.add_argument("--data_path", default="./data/multi_data7/multi_data7", type=str)
+parser.add_argument("--data_path", default="./data/multi_data7/tfrecord/multi_data7", type=str)
 # common params
 parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
-parser.add_argument("--l2", default=1e-4, type=float)
+parser.add_argument("--l2", default=0, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="./model/{}".format(int(time.time())), type=str)
 # model select
