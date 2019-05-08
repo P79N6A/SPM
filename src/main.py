@@ -4,8 +4,10 @@ import argparse
 import tensorflow as tf
 from estimator import MaxAttention
 from estimator import PNN
+from utils import report
 import time
 import json
+import os
 
 parser = argparse.ArgumentParser()
 # data
@@ -64,10 +66,9 @@ def main(argv):
         },
     )
 
-    '''
-    estimator提供train, evaluate, predict方法，
-    train方法需要输入无参方法提供数据
-    '''
+    report.reportmetrics(
+        [{"sMetricsName": "auc", "sMetricsValue": 0.5}]
+    )
     for epoch in range(1, args.n_epoch + 1):
         train_input_fn = lambda: my_estimator.input_fn(
             filenames="{}.train2.tfrecord".format(args.data_path),
@@ -90,10 +91,11 @@ def main(argv):
             input_fn=eval_input_fn,
             steps=1000,
         )
-        # print(eval_result)
-        print("Epoch: {}".format(epoch))
+        rpt = []
         for k, v in eval_result.items():
             print('Test set {}: {}'.format(k, v))
+            rpt.append({"sMetricsName": k, "sMetricsValue": float(v)})
+        report.reportmetrics(rpt)
 
     '''
     导出estimator为pb模型文件，需要提供serving_input_receiver_fn方法
