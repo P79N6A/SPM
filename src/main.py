@@ -21,7 +21,8 @@ parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
 parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
-parser.add_argument("--logdir", default="./model/{}".format(int(time.time())), type=str)
+parser.add_argument("--logdir", default="", type=str)
+parser.add_argument("--shuffle_size", default=100, type=int)
 # model select
 parser.add_argument("--model", default="SPM", type=str)
 # SPM
@@ -49,6 +50,13 @@ def main(argv):
         "PNN": PNN,
     }
     my_estimator = models[args.model]
+
+    logdir = args.logdir
+    if not logdir:
+        logdir = "./model/{}".format(int(time.time()))
+    elif logdir == "siyuan":
+        logdir = "/ceph/szgpu/kuaibao//2872/tensorboard/TensorFlow_6894726"
+
     classifier = tf.estimator.Estimator(
         model_fn=my_estimator.model_fn,
         model_dir=args.logdir,
@@ -85,6 +93,7 @@ def main(argv):
         eval_input_fn = lambda: my_estimator.input_fn(
             filenames="{}.test2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
+            shuffle=args.shuffle_size,
         )
 
         eval_result = classifier.evaluate(

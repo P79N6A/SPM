@@ -120,3 +120,4 @@ model/*
 export/*
 .vs*
 *.tar
+log/*

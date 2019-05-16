@@ -77,6 +77,22 @@ def mlp(features, emb_dim, dropout, training):
     return predict
 
 
+def queries_similarity(queries):
+    batch_size, n_attention, emb_size = queries.shape.as_list()
+    masks = tf.sequence_mask(list(range(n_attention)), n_attention)
+    padding = tf.zeros_like(masks, dtype=tf.float32)
+
+    inner_product = tf.matmul(queries, queries, transpose_b=True)
+    inner_product = tf.map_fn(
+        lambda x: tf.where(masks, x, padding),
+        inner_product,
+    )
+
+    similarity = tf.reduce_sum(inner_product)
+
+    return similarity
+    
+
 def model_fn(features, labels, mode, params):
     '''
     :param features: dict of tf.Tensor
@@ -142,10 +158,10 @@ def model_fn(features, labels, mode, params):
         jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
         cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs_conv, cv_lens)
 
-    # j_emb = tf.reduce_mean(j_queries, axis=-2)
-    # p_emb = tf.reduce_mean(p_queries, axis=-2)
-    j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
-    p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
+    j_emb = tf.reduce_mean(j_queries, axis=-2)
+    p_emb = tf.reduce_mean(p_queries, axis=-2)
+    # j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
+    # p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
@@ -245,9 +261,10 @@ def model_fn(features, labels, mode, params):
                 predictions=tf.squeeze(cj_prob)
             )
 
-            variance = tf.reduce_sum(j_variance) + tf.reduce_sum(p_variance)
+            j_queries_simi = queries_similarity(j_queries)
+            p_queries_simi = queries_similarity(p_queries)
 
-            loss = loss + semantic_loss + jc_loss + cj_loss - variance
+            loss = loss + semantic_loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
 
         if l2:
             l2_params = [
@@ -288,7 +305,8 @@ def model_fn(features, labels, mode, params):
 
     optimizer = tf.train.AdagradOptimizer(learning_rate=lr)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
-    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+    return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, eval_metric_ops=metrics)
 
 
 def input_fn(filenames, batch_size=32, shuffle=0):

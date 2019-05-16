@@ -12,7 +12,7 @@ HOST = "http://prajna-maintenance.wsd.com"
 
 def reportmetrics(data):
     data = {
-        "sAppinstanceName": os.environ["PRAJNA_APP_INST_ID"],
+        "sAppinstanceName": os.environ.get("PRAJNA_APP_INST_ID", ""),
         "data": data,
     }
     full_url = HOST + URL

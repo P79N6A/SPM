@@ -21,11 +21,29 @@ def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     """
 
     d = queries.shape.as_list()[-1]
+    n_query = queries.shape.as_list()[-2]
+
     scores = tf.divide(
         tf.matmul(queries, keys, transpose_b=True),
         d ** (1 / 2),
     )
-    scores = tf.reduce_max(scores, axis=-2, keepdims=True)
+    # scores = tf.reduce_max(scores, axis=-2, keepdims=True)
+    related_queries = tf.math.argmax(scores, axis=-2)
+    zeros = tf.zeros_like(keys)
+
+    related_features = list()
+    for i in range(n_query):
+        related_feature = tf.map_fn(
+            tf.where(condition=related_queries == i, x=keys, y=zeros))
+        related_features.append(related_feature)
+
+    
+
+
+
+
+
+
 
     # Mask
     key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
