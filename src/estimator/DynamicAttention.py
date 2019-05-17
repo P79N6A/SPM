@@ -37,7 +37,8 @@ def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
             tf.where(condition=related_queries == i, x=keys, y=zeros))
         related_features.append(related_feature)
 
-    
+    for i in range(n_query):
+
 
 
 
