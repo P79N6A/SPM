@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-from estimator import MaxAttention
-from estimator import PNN
+from estimator import MaxAttention, PNN, DynamicAttention
 from utils import report
 import time
 import json
-import os
+import shutil
 
 parser = argparse.ArgumentParser()
 # data
-parser.add_argument('--batch_size', default=100, type=int)
+parser.add_argument('--batch_size', default=64, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
 parser.add_argument("--data_path", default="./data/multi_data7/tfrecord/multi_data7", type=str)
@@ -24,7 +23,7 @@ parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
 # model select
-parser.add_argument("--model", default="SPM", type=str)
+parser.add_argument("--model", default="DMA", type=str)
 # SPM
 parser.add_argument("--n_attention", default=3, type=int)
 
@@ -48,18 +47,18 @@ def main(argv):
     models = {
         "SPM": MaxAttention,
         "PNN": PNN,
+        "DMA": DynamicAttention,
     }
     my_estimator = models[args.model]
 
     logdir = args.logdir
     if not logdir:
         logdir = "./model/{}".format(int(time.time()))
-    elif logdir == "siyuan":
-        logdir = "/ceph/szgpu/kuaibao//2872/tensorboard/TensorFlow_6894726"
+    shutil.rmtree(logdir)
 
     classifier = tf.estimator.Estimator(
         model_fn=my_estimator.model_fn,
-        model_dir=args.logdir,
+        model_dir=logdir,
         config=run_config,
         params={
             "emb_size": args.emb_size,

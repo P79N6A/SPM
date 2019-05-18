@@ -20,45 +20,63 @@ def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     :return: 2d array
     """
 
-    d = queries.shape.as_list()[-1]
+    emb_dim = queries.shape.as_list()[-1]
     n_query = queries.shape.as_list()[-2]
 
+    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
+    key_masks = tf.tile(
+        input=tf.expand_dims(key_masks, -1),  # [B, 500, 1]
+        multiples=[1, 1, emb_dim]
+    )  # [B, 500, 64]
+    keys = tf.where(
+        condition=key_masks,
+        x=keys,
+        y=tf.zeros_like(keys)
+    )
     scores = tf.divide(
         tf.matmul(queries, keys, transpose_b=True),
-        d ** (1 / 2),
+        emb_dim ** (1 / 2),
+    )  # [B, 3, 500]
+
+    related_queries = tf.math.argmax(scores, axis=-2)  # [B, 500]
+
+    features = list()
+    for i in range(n_query):
+        related_feature_index = tf.equal(related_queries, i)  # [B, 500]
+        related_feature_index = tf.expand_dims(related_feature_index, axis=-1)
+        related_feature_index = tf.tile(related_feature_index, multiples=[1, 1, emb_dim])  # [B, 500, 64]
+        related_feature = tf.where(
+            condition=related_feature_index,
+            x=keys,
+            y=tf.zeros_like(keys)
+        )  # [B, 500, 64]
+        score = tf.gather(scores, [i], axis=1)  # [B, 1, 500]
+        related_feature = tf.matmul(score, related_feature)  # [B, 1, 64]
+        # related_feature = tf.math.divide(
+        #     # x=tf.math.reduce_sum(related_feature, axis=-2),
+        #     x=related_feature,
+        #     y=tf.math.reduce_sum(
+        #         tf.cast(related_feature_index, tf.float32),
+        #         axis=-2
+        #     )
+        # )
+        query = tf.gather(queries, [i], axis=1)  # [B, 1, 64]
+        cross_feature = pnn([related_feature, query])
+        features.append(cross_feature)
+    features = [tf.expand_dims(feature, 1) for feature in features]
+    features = tf.concat(features, axis=1)
+    features = tf.reduce_max(features, axis=1)
+    return features
+
+
+def pnn(features):
+    cross_features = tf.einsum(
+        'api,apj->apij',
+        tf.concat(features[1:], axis=1),
+        tf.concat(features[:-1], axis=1)
     )
-    # scores = tf.reduce_max(scores, axis=-2, keepdims=True)
-    related_queries = tf.math.argmax(scores, axis=-2)
-    zeros = tf.zeros_like(keys)
-
-    related_features = list()
-    for i in range(n_query):
-        related_feature = tf.map_fn(
-            tf.where(condition=related_queries == i, x=keys, y=zeros))
-        related_features.append(related_feature)
-
-    for i in range(n_query):
-
-
-
-
-
-
-
-
-    # Mask
-    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
-    key_masks = tf.expand_dims(key_masks, 1)  # [B, 1, 500]
-    paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
-    scores = tf.where(key_masks, scores, paddings)  # [B, 1, 500]
-
-    # Activation
-    weight = tf.nn.softmax(scores)  # [B, 1, 500]
-
-    weighted_features = tf.matmul(weight, keys)  # [B, 1, 64]
-    weighted_features = tf.squeeze(weighted_features, axis=1) # [B, 64]
-
-    return weight, weighted_features
+    cross_features = tf.keras.layers.Flatten()(cross_features)
+    return cross_features
 
 
 def cnn(x, conv_size):
@@ -110,7 +128,7 @@ def queries_similarity(queries):
     similarity = tf.reduce_sum(inner_product)
 
     return similarity
-    
+
 
 def model_fn(features, labels, mode, params):
     '''
@@ -170,12 +188,12 @@ def model_fn(features, labels, mode, params):
                 stddev=1 / n_word ** (1 / 2),
             ),
             name="person_emb",
-        )        
+        )
         p_queries = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
-        cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs_conv, cv_lens)
+        cj_cross_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
+        jc_cross_features = dynamic_attention(p_queries, cvs_conv, cv_lens)
 
     j_emb = tf.reduce_mean(j_queries, axis=-2)
     p_emb = tf.reduce_mean(p_queries, axis=-2)
@@ -187,7 +205,7 @@ def model_fn(features, labels, mode, params):
         cv_global_vecs = tf.reduce_max(cvs_conv, axis=1)
 
     features = tf.concat(
-        values=[j_emb, jd_global_vecs, jd_weighted_vecs, p_emb, cv_global_vecs, cv_weighted_vecs],
+        values=[j_emb, jd_global_vecs, cj_cross_vecs, p_emb, cv_global_vecs, jc_cross_features],
         axis=-1,
     )
 
@@ -216,8 +234,8 @@ def model_fn(features, labels, mode, params):
             'logits': logits,
         }
         export_outputs = {
-            tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:\
-            tf.estimator.export.PredictOutput(predictions)
+            tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: \
+                tf.estimator.export.PredictOutput(predictions)
         }
         return tf.estimator.EstimatorSpec(
             mode,
@@ -233,24 +251,24 @@ def model_fn(features, labels, mode, params):
         )
 
         with tf.variable_scope("aux_loss"):
-            semantic_features = tf.concat(
-                values=[jd_global_vecs, cv_global_vecs],
-                axis=-1,
-            )
-            semantic_prob = tf.sigmoid(mlp(
-                semantic_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
-            semantic_loss = tf.losses.log_loss(
-                labels=fit_label,
-                predictions=tf.squeeze(semantic_prob),
-            )
+            # semantic_features = tf.concat(
+            #     values=[jd_global_vecs, cv_global_vecs],
+            #     axis=-1,
+            # )
+            # semantic_prob = tf.sigmoid(mlp(
+            #     semantic_features,
+            #     emb_dim=emb_size,
+            #     dropout=dropout,
+            #     training=(mode == tf.estimator.ModeKeys.TRAIN)
+            # ))
+            # semantic_loss = tf.losses.log_loss(
+            #     labels=fit_label,
+            #     predictions=tf.squeeze(semantic_prob),
+            # )
 
             jc_label = labels[:, 0]
             jc_features = tf.concat(
-                values=[j_emb, cv_weighted_vecs],
+                values=[jd_global_vecs, cv_global_vecs, jc_cross_features],
                 axis=-1,
             )
             jc_prob = tf.sigmoid(mlp(
@@ -266,7 +284,7 @@ def model_fn(features, labels, mode, params):
 
             cj_label = labels[:, 1]
             cj_features = tf.concat(
-                values=[p_emb, jd_weighted_vecs],
+                values=[jd_global_vecs, cv_global_vecs, cj_cross_vecs],
                 axis=-1,
             )
             cj_prob = tf.sigmoid(mlp(
@@ -283,7 +301,7 @@ def model_fn(features, labels, mode, params):
             j_queries_simi = queries_similarity(j_queries)
             p_queries_simi = queries_similarity(p_queries)
 
-            loss = loss + semantic_loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
+            loss = loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
 
         if l2:
             l2_params = [
@@ -330,6 +348,7 @@ def model_fn(features, labels, mode, params):
 
 def input_fn(filenames, batch_size=32, shuffle=0):
     print("parsing", filenames)
+
     def _parse_fn(record):
         features = {
             "labels": tf.FixedLenFeature([3], tf.int64),
@@ -343,6 +362,7 @@ def input_fn(filenames, batch_size=32, shuffle=0):
         parsed = tf.parse_single_example(record, features)
         labels = parsed.pop("labels")
         return parsed, labels
+
     dataset = tf.data.TFRecordDataset(filenames).map(
         _parse_fn, num_parallel_calls=multiprocessing.cpu_count()
     )
@@ -357,8 +377,39 @@ def input_fn(filenames, batch_size=32, shuffle=0):
 if __name__ == "__main__":
     tf.enable_eager_execution()
     batch_features, batch_labels = input_fn(
-        "./data/multi_data7_tech/multi_data7_tech.train2.tfrecord",
+        "./data/multi_data7/multi_data7.train2.tfrecord",
         batch_size=32,
     )
-    print(batch_features)
-    print(batch_labels)
+    # print(batch_features)
+    # print(batch_labels)
+
+    run_config = tf.estimator.RunConfig().replace(
+        session_config=tf.ConfigProto(
+            gpu_options={"allow_growth": True},
+        ))
+    classifier = tf.estimator.Estimator(
+        model_fn=model_fn,
+        model_dir="./model/test",
+        config=run_config,
+        params={
+            "emb_size": 64,
+            "n_word": 10000,
+            "n_job": 1000,
+            "n_person": 1000,
+            "conv_size": 3,
+            "n_attention": 3,
+            "dropout": 0,
+            "l2": 0,
+            "lr": 0.01,
+        },
+    )
+
+    train_input_fn = lambda: input_fn(
+        filenames="./data/multi_data7_tech/multi_data7_tech.train2.tfrecord",
+        batch_size=64
+    )
+
+    classifier.train(
+        input_fn=train_input_fn,
+        steps=1,
+    )
