@@ -55,7 +55,7 @@ def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_l
             activation=tf.nn.relu,
         )
         vec_of_view = attention(view, keys, keys_length)
-        multi_views.append(vec_of_views)
+        multi_views.append(vec_of_view)
     multi_views = tf.concat(multi_views, axis=-1)
     return multi_views
 
@@ -145,7 +145,7 @@ def model_fn(features, labels, mode, params):
             ),
             name="job_emb",
         )
-        j_queries = tf.nn.embedding_lookup(job_emb, jids)
+        j_emb = tf.nn.embedding_lookup(job_emb, jids)
 
         person_emb = tf.Variable(
             initial_value=tf.random_normal(
@@ -154,11 +154,11 @@ def model_fn(features, labels, mode, params):
             ),
             name="person_emb",
         )        
-        p_queries = tf.nn.embedding_lookup(person_emb, pids)
+        p_emb = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weighted_vecs = multi_attention(j_queries, n_attention, jds_conv, jd_lens)
-        cv_weighted_vecs = multi_attention(p_queries, n_attention, cvs_conv, cv_lens)
+        jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_conv, jd_lens)
+        cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_conv, cv_lens)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
@@ -258,8 +258,8 @@ def model_fn(features, labels, mode, params):
                 predictions=tf.squeeze(cj_prob)
             )
 
-            j_queries_simi = queries_similarity(j_queries)
-            p_queries_simi = queries_similarity(p_queries)
+            j_queries_simi = queries_similarity(j_emb)
+            p_queries_simi = queries_similarity(p_emb)
 
             loss = loss + semantic_loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
 
@@ -267,8 +267,8 @@ def model_fn(features, labels, mode, params):
             l2_params = [
                 jds_emb,
                 cvs_emb,
-                j_queries,
-                p_queries
+                j_emb,
+                p_emb
             ]
             l2_loss = sum([tf.nn.l2_loss(x) for x in l2_params])
             loss += l2_loss * l2
