@@ -12,34 +12,52 @@ FEATURES = {
 }
 
 
-def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+def attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+    """
+    :param queries: [B, H]
+    :param keys: [B, T, H]
+    :param keys_length: [B]
+    :return: 2d array
+    """
+    d = queries.shape.as_list()[-1]
+    queries = tf.expand_dims(queries, axis=1)  # [B, 1, H]
+    scores = tf.divide(
+        tf.matmul(queries, keys, transpose_b=True),  # [B, 1, T]
+        tf.sqrt(float(d)))
+
+    # Mask
+    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, T]
+    key_masks = tf.expand_dims(key_masks, 1)  # [B, 1, T]
+    paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
+    scores = tf.where(key_masks, scores, paddings)  # [B, 1, T]
+
+    # Activation
+    weight = tf.nn.softmax(scores)  # [B, 1, T]
+
+    weighted_features = tf.matmul(weight, keys)  # [B, 1, H]
+    weighted_features = tf.squeeze(weighted_features, axis=1)
+    return weighted_features
+
+
+def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_length: tf.Tensor):
     """
     :param queries: [B, 3, 64]
     :param keys: [B, 500, 64]
     :param keys_length: [B]
     :return: 2d array
     """
-
-    d = queries.shape.as_list()[-1]
-    scores = tf.divide(
-        tf.matmul(queries, keys, transpose_b=True),
-        d ** (1 / 2),
-    )
-    scores = tf.reduce_max(scores, axis=-2, keepdims=True)
-
-    # Mask
-    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
-    key_masks = tf.expand_dims(key_masks, 1)  # [B, 1, 500]
-    paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
-    scores = tf.where(key_masks, scores, paddings)  # [B, 1, 500]
-
-    # Activation
-    weight = tf.nn.softmax(scores)  # [B, 1, 500]
-
-    weighted_features = tf.matmul(weight, keys)  # [B, 1, 64]
-    weighted_features = tf.squeeze(weighted_features, axis=1) # [B, 64]
-
-    return weight, weighted_features
+    batch_size, emb_dim = queries.shape.as_list()
+    multi_views = []
+    for head in range(n_attention):
+        view = tf.layers.dense(
+            queries,
+            units=emb_dim,
+            activation=tf.nn.relu,
+        )
+        vec_of_view = attention(view, keys, keys_length)
+        multi_views.append(vec_of_views)
+    multi_views = tf.concat(multi_views, axis=-1)
+    return multi_views
 
 
 def cnn(x, conv_size):
@@ -75,22 +93,6 @@ def mlp(features, emb_dim, dropout, training):
         units=1,
     )
     return predict
-
-
-def queries_similarity(queries):
-    batch_size, n_attention, emb_size = queries.shape.as_list()
-    masks = tf.sequence_mask(list(range(n_attention)), n_attention)
-    padding = tf.zeros_like(masks, dtype=tf.float32)
-
-    inner_product = tf.matmul(queries, queries, transpose_b=True)
-    inner_product = tf.map_fn(
-        lambda x: tf.where(masks, x, padding),
-        inner_product,
-    )
-
-    similarity = tf.reduce_sum(inner_product)
-
-    return similarity
     
 
 def model_fn(features, labels, mode, params):
@@ -138,8 +140,8 @@ def model_fn(features, labels, mode, params):
     with tf.variable_scope("user_idx"):
         job_emb = tf.Variable(
             initial_value=tf.random_normal(
-                shape=(n_job, n_attention, emb_size),
-                stddev=1 / n_word ** (1 / 2),
+                shape=(n_job, emb_size),
+                stddev=1 / n_job ** (1 / 2),
             ),
             name="job_emb",
         )
@@ -147,21 +149,16 @@ def model_fn(features, labels, mode, params):
 
         person_emb = tf.Variable(
             initial_value=tf.random_normal(
-                shape=(n_person, n_attention, emb_size),
-                stddev=1 / n_word ** (1 / 2),
+                shape=(n_person, emb_size),
+                stddev=1 / n_person ** (1 / 2),
             ),
             name="person_emb",
         )        
         p_queries = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weights, jd_weighted_vecs = dynamic_attention(j_queries, jds_conv, jd_lens)
-        cv_weights, cv_weighted_vecs = dynamic_attention(p_queries, cvs_conv, cv_lens)
-
-    j_emb = tf.reduce_mean(j_queries, axis=-2)
-    p_emb = tf.reduce_mean(p_queries, axis=-2)
-    # j_emb, j_variance = tf.nn.moments(j_queries, axes=-2)
-    # p_emb, p_variance = tf.nn.moments(p_queries, axes=-2)
+        jd_weighted_vecs = multi_attention(j_queries, n_attention, jds_conv, jd_lens)
+        cv_weighted_vecs = multi_attention(p_queries, n_attention, cvs_conv, cv_lens)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
@@ -231,7 +228,7 @@ def model_fn(features, labels, mode, params):
 
             jc_label = labels[:, 0]
             jc_features = tf.concat(
-                values=[j_emb, cv_weighted_vecs],
+                values=[j_emb, cv_weighted_vecs, jd_global_vecs, cv_global_vecs],
                 axis=-1,
             )
             jc_prob = tf.sigmoid(mlp(
@@ -247,7 +244,7 @@ def model_fn(features, labels, mode, params):
 
             cj_label = labels[:, 1]
             cj_features = tf.concat(
-                values=[p_emb, jd_weighted_vecs],
+                values=[p_emb, jd_weighted_vecs, jd_global_vecs, cv_global_vecs],
                 axis=-1,
             )
             cj_prob = tf.sigmoid(mlp(

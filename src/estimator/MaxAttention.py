@@ -12,34 +12,7 @@ FEATURES = {
 }
 
 
-def attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
-    """
-    :param queries: [B, H]
-    :param keys: [B, T, H]
-    :param keys_length: [B]
-    :return: 2d array
-    """
-    d = queries.shape.as_list()[-1]
-    queries = tf.expand_dims(queries, axis=1)  # [B, 1, H]
-    scores = tf.divide(
-        tf.matmul(queries, keys, transpose_b=True),  # [B, 1, T]
-        tf.sqrt(float(d)))
-
-    # Mask
-    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, T]
-    key_masks = tf.expand_dims(key_masks, 1)  # [B, 1, T]
-    paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
-    scores = tf.where(key_masks, scores, paddings)  # [B, 1, T]
-
-    # Activation
-    weight = tf.nn.softmax(scores)  # [B, 1, T]
-
-    weighted_features = tf.matmul(weight, keys)  # [B, 1, H]
-    weighted_features = tf.squeeze(weighted_features, axis=1)
-    return weight, weighted_features
-
-
-def multi_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
+def dynamic_attention(queries: tf.Tensor, keys: tf.Tensor, keys_length):
     """
     :param queries: [B, 3, 64]
     :param keys: [B, 500, 64]

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-from estimator import MaxAttention, PNN, DynamicAttention
+from estimator import MaxAttention, PNN, DynamicAttention, MultiHeadAttention
 from utils import report
 import time
 import json
@@ -24,7 +24,7 @@ parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
 # model select
-parser.add_argument("--model", default="DMA", type=str)
+parser.add_argument("--model", default="MA", type=str)
 # SPM
 parser.add_argument("--n_attention", default=3, type=int)
 
@@ -49,6 +49,7 @@ def main(argv):
         "SPM": MaxAttention,
         "PNN": PNN,
         "DMA": DynamicAttention,
+        "MA": MultiHeadAttention,
     }
     my_estimator = models[args.model]
 
