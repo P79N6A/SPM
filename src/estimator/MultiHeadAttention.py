@@ -258,10 +258,7 @@ def model_fn(features, labels, mode, params):
                 predictions=tf.squeeze(cj_prob)
             )
 
-            j_queries_simi = queries_similarity(j_emb)
-            p_queries_simi = queries_similarity(p_emb)
-
-            loss = loss + semantic_loss + jc_loss + cj_loss + j_queries_simi + p_queries_simi
+            loss = loss + semantic_loss + jc_loss + cj_loss
 
         if l2:
             l2_params = [
