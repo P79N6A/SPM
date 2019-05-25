@@ -7,13 +7,14 @@ from utils import report
 import time
 import json
 import shutil
+import os
 
 parser = argparse.ArgumentParser()
 # data
-parser.add_argument('--batch_size', default=64, type=int)
+parser.add_argument('--batch_size', default=100, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
-parser.add_argument("--data_path", default="./data/multi_data7/tfrecord/multi_data7", type=str)
+parser.add_argument("--data_path", default="./data/multi_data7_300k/tfrecord/multi_data7_300k", type=str)
 # common params
 parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
@@ -54,7 +55,8 @@ def main(argv):
     logdir = args.logdir
     if not logdir:
         logdir = "./model/{}".format(int(time.time()))
-    shutil.rmtree(logdir)
+    if os.path.exists(logdir):
+        shutil.rmtree(logdir)
 
     classifier = tf.estimator.Estimator(
         model_fn=my_estimator.model_fn,

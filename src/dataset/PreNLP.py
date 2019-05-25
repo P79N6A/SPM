@@ -66,19 +66,20 @@ def get_id_pool(path):
 if __name__ == "__main__":
     print("work directory: ", os.getcwd())
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default="multi_data7")
+    parser.add_argument('--datain', default="multi_data7")
+    parser.add_argument("--dataout", default="multi_data7_300k")
     args = parser.parse_args()
 
-    exp_pool, job_pool = get_id_pool(args.data)
+    exp_pool, job_pool = get_id_pool(args.dataout)
 
     nlp_features(
-        fpin="../Data/{}/{}.profile.job".format(args.data, args.data),
-        fpout="./data/{}/{}.profile.job".format(args.data, args.data),
+        fpin="../Data/{}/{}.profile.job".format(args.datain, args.datain),
+        fpout="./data/{}/{}.profile.job".format(args.dataout, args.dataout),
         id_pool=job_pool,
     )
     nlp_features(
-        fpin="../Data/{}/{}.profile.expect".format(args.data, args.data),
-        fpout="./data/{}/{}.profile.expect".format(args.data, args.data),
+        fpin="../Data/{}/{}.profile.expect".format(args.datain, args.datain),
+        fpout="./data/{}/{}.profile.expect".format(args.dataout, args.dataout),
         id_pool=exp_pool,
     )
 

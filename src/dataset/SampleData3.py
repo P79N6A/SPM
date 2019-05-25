@@ -53,13 +53,14 @@ def sample_new_pair(test_frame: pd.DataFrame, train_frame: pd.DataFrame):
 if __name__ == '__main__':
     print("work directory: ", os.getcwd())
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default="multi_data7")
+    parser.add_argument('--datain', default="multi_data7")
+    parser.add_argument('--dataout', default="multi_data7_300k")
     parser.add_argument('--rand_sample', type=int, default=0)
     parser.add_argument("--new", type=int, default=0)
     args = parser.parse_args()
 
-    fpin="../Data/{}/{}".format(args.data, args.data)
-    fpout="./data/{}/{}".format(args.data, args.data)
+    fpin="../Data/{}/{}".format(args.datain, args.datain)
+    fpout="./data/{}/{}".format(args.dataout, args.dataout)
 
     train_frame = pd.read_csv(
         '{}.train'.format(fpin),
@@ -85,7 +86,7 @@ if __name__ == '__main__':
             test_frame = sample_new_pair(test_frame, train_frame)
         test_frame = calibration(test_frame, 0.1)
 
-    train_frame = train_frame.iloc[:100000]
+    train_frame = train_frame.iloc[:300000]
 
     test_frame = test_frame.iloc[:50000]
 

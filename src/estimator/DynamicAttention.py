@@ -268,7 +268,7 @@ def model_fn(features, labels, mode, params):
 
             jc_label = labels[:, 0]
             jc_features = tf.concat(
-                values=[jd_global_vecs, cv_global_vecs, jc_cross_features],
+                values=[jd_global_vecs, cv_global_vecs, jc_cross_features, j_emb],
                 axis=-1,
             )
             jc_prob = tf.sigmoid(mlp(
@@ -284,7 +284,7 @@ def model_fn(features, labels, mode, params):
 
             cj_label = labels[:, 1]
             cj_features = tf.concat(
-                values=[jd_global_vecs, cv_global_vecs, cj_cross_vecs],
+                values=[jd_global_vecs, cv_global_vecs, cj_cross_vecs, p_emb],
                 axis=-1,
             )
             cj_prob = tf.sigmoid(mlp(
