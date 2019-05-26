@@ -71,7 +71,7 @@ class MixData:
     def load_pretrain(fp):
         if not fp:
             return False
-        words = set()
+        words = set(["__pad__", "__unk__"])
         with open(fp, encoding="utf8") as f:
             for line in f:
                 word = line.split()[0]
@@ -101,7 +101,7 @@ class MixData:
     @staticmethod
     def dump_w2v(pre_w2v, word_dict, dump_fp):
         print("dump w2v ing ...")
-        with open(dump_fp, 'w') as fout:
+        with open(dump_fp, 'w', encoding="utf8") as fout:
             with open(pre_w2v) as fin:
                 for line in tqdm(fin):
                     word = line.split()[0]
