@@ -102,7 +102,8 @@ def main(argv):
             input_fn=eval_input_fn,
             steps=1000,
         )
-        rpt = []
+        rpt = [{"sMetricsName": "epoch", "sMetricsValue": epoch}]
+        print("epoch: {}".format(epoch))
         for k, v in eval_result.items():
             print('Test set {}: {}'.format(k, v))
             rpt.append({"sMetricsName": k, "sMetricsValue": float(v)})

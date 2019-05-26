@@ -101,13 +101,29 @@ class MixData:
     @staticmethod
     def dump_w2v(pre_w2v, word_dict, dump_fp):
         print("dump w2v ing ...")
-        with open(dump_fp, 'w', encoding="utf8") as fout:
-            with open(pre_w2v) as fin:
-                for line in tqdm(fin):
-                    word = line.split()[0]
-                    if word not in word_dict:
-                        continue
-                    fout.write(line)
+        # with open(dump_fp, 'w', encoding="utf8") as fout:
+        #     with open(pre_w2v) as fin:
+        #         for line in tqdm(fin):
+        #             word = line.split()[0]
+        #             if word not in word_dict:
+        #                 continue
+        #             fout.write(line)
+        with open(pre_w2v) as fin:
+            line = fin.readline().strip()
+            emb_dim = len(line.split()) - 1
+        word_vecs = ["0 " * emb_dim[:-1]] * len(word_dict)
+        print("loading w2v")
+        with open(pre_w2v, encoding="utf8") as fin:
+            for line in tqdm(fpin):
+                data = line.split()
+                word = data[0]
+                vec = data[1:]
+                idx = word_dict[word]
+                word_vecs[idx] = " ".join(vec)
+        print("writing vec")
+        with open(dump_fp, 'w') as f:
+            f.write("\n".join(word_vecs))
+        return
 
     def build_features(self, fp, feature_name):
         n_feature = len(feature_name)
