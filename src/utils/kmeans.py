@@ -1,5 +1,6 @@
 from sklearn import cluster
 from tqdm import tqdm
+import pandas as pd
 
 if __name__ == "__main__":
     data = "multi_data7_300k_pre"
@@ -20,4 +21,7 @@ if __name__ == "__main__":
         y = model.predict(data)
         result.append(y)
 
-    with open("./data/multi_data7_300k_pre.")
+    fp_cls = "./data/{0}/{0}.word_cls".format(data)
+    df_cls = pd.DataFrame(result).T
+    df_cls.to_csv("fp_cls", index=False, header=None)
+        
