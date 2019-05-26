@@ -196,7 +196,7 @@ if __name__ == '__main__':
     import os
     print("work directory: ", os.getcwd())
 
-    dataout = "multi_data7_300k"
+    dataset = "multi_data7_300k"
     dataout = "multi_data7_300k_pre"
     mix_data = MixData(
         fpin='./data/{0}/{0}'.format(dataset),
