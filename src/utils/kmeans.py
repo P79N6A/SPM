@@ -7,4 +7,5 @@ if __name__ == "__main__":
     data = pd.read_csv(fp_pre, sep=" ", header=None).values
     
     model = cluster.KMeans(n_clusters=3)
-    cls = model.fit()
+    y = model.fit(data)
+    print(y)
