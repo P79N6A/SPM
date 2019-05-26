@@ -118,6 +118,8 @@ def model_fn(features, labels, mode, params):
     dropout = params["dropout"]
     l2 = params["l2"]
     lr = params["lr"]
+    w2v_pre = params["w2v_pre"]
+    w_cls = params["w_cls"]
 
     '''
     features是包含一个dict，key为特征名，value为原始特征Tensor
@@ -129,16 +131,21 @@ def model_fn(features, labels, mode, params):
     pids = features["pids"]
     cvs = features["cvs"]
     cv_lens = features["cv_lens"]
-    word_class = features["word_class"]
+    word_class = features["w_cls"]
+
 
     with tf.variable_scope("CNN"):
-        word_emb = tf.Variable(
-            initial_value=tf.random_normal(
-                shape=(n_word, emb_size),
-                stddev=1 / n_word ** (1 / 2),
-            ),
-            name="word_emb",
-        )
+        if w2v_pre:
+            word_emb = tf.Variable(initial_value=w2v_pre, name="word_emb")
+        else:
+            word_emb = tf.Variable(
+                initial_value=tf.random_normal(
+                    shape=(n_word, emb_size),
+                    stddev=1 / n_word ** (1 / 2),
+                ),
+                name="word_emb",
+            )
+
         jds_word_cls = tf.nn.embedding_lookup(word_class, jds)
         jds_emb = tf.nn.embedding_lookup(word_emb, jds)
         jds_conv = cnn(jds_emb, conv_size)

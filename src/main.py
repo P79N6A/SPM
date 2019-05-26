@@ -3,7 +3,7 @@
 import argparse
 import tensorflow as tf
 from estimator import MaxAttention, PNN, DynamicAttention, MultiHeadAttention
-from utils import report
+from utils import report, kmeans
 import time
 import json
 import shutil
@@ -23,6 +23,7 @@ parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
+parser.add_argument("--load_pre", default=0, type=int)
 # model select
 parser.add_argument("--model", default="MA", type=str)
 # SPM
@@ -35,6 +36,24 @@ def main(argv):
 
     with open("{}.param.json".format(args.data_path)) as f:
         params = json.load(f)
+
+    logdir = args.logdir
+    if not logdir:
+        logdir = "./model/{}".format(int(time.time()))
+    if os.path.exists(logdir):
+        shutil.rmtree(logdir)
+
+    w2v_pre = 0
+    if args.load_pre:
+        fp_pre = "./data/{0}/{0}.w2v".format(args.data_path)
+        w2v_pre = kmeans.load_w2v(fp_pre)
+
+    word_cls = 0
+    if args.load_wcls:
+        fp_cls = "./data/{0}/{0}.word_cls".format(args.data_path)
+        with open(fp_cls) as f:
+            w_cls = f.read().strip().split("\n")
+            w_cls = [int(line.split()[args.n_attention - 1]) for line in w_cls]
 
     run_config = tf.estimator.RunConfig().replace(
         session_config=tf.ConfigProto(
@@ -53,12 +72,6 @@ def main(argv):
     }
     my_estimator = models[args.model]
 
-    logdir = args.logdir
-    if not logdir:
-        logdir = "./model/{}".format(int(time.time()))
-    if os.path.exists(logdir):
-        shutil.rmtree(logdir)
-
     classifier = tf.estimator.Estimator(
         model_fn=my_estimator.model_fn,
         model_dir=logdir,
@@ -73,6 +86,8 @@ def main(argv):
             "dropout": args.dropout,
             "l2": args.l2,
             "lr": args.lr,
+            "w2v_pre": w2v_pre,
+            "w_cls": w_cls,
         },
     )
 
