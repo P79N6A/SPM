@@ -8,7 +8,7 @@ import json
 
 
 class MixData:
-    def __init__(self, fpin, wfreq, doc_len, pre_w2v=""):
+    def __init__(self, fpin, fpout, wfreq, doc_len, pre_w2v=""):
         self.fpin = fpin
         self.doc_len = doc_len
 
@@ -33,15 +33,15 @@ class MixData:
             self.dump_w2v(
                 pre_w2v,
                 self.word_dict,
-                dump_fp="{}.w2v".format(fpin),
+                dump_fp="{}.w2v".format(fpout),
             )
         else:
             self.word_dict = self.build_dict(fps, wfreq)
 
-        with open("{}.words.json".format(fpin), "w", encoding="utf8") as f:
+        with open("{}.words.json".format(fpout), "w", encoding="utf8") as f:
             json.dump(self.word_dict, f, ensure_ascii=False, indent=2)
 
-        with open("{}.words.tsv".format(fpin), "w", encoding="utf8") as f:
+        with open("{}.words.tsv".format(fpout), "w", encoding="utf8") as f:
             f.write("Index\tLabel\n")
             for k, v in self.word_dict.items():
                 line = "{}\t{}\n".format(v, k)
@@ -57,7 +57,7 @@ class MixData:
         print("num of words: {}".format(len(self.word_dict)))
         print("num of person: {}".format(len(self.exp_to_row)))
         print("num of job: {}".format(len(self.job_to_row)))
-        with open("{}.param.json".format(fpin), "w") as f:
+        with open("{}.param.json".format(fpout), "w") as f:
             json.dump(
                 {
                     "n_word": len(self.word_dict),
@@ -92,9 +92,8 @@ class MixData:
         word_list = [k for k, v in words_freq.items() if v >= w_freq]
         word_list = ['__pad__', '__unk__'] + word_list
         if word_set:
-            word_dict = {k: v for v, k in enumerate(word_list) if k in word_set}
-        else:
-            word_dict = {k: v for v, k in enumerate(word_list)}
+            word_list = [word for word in word_list if word in word_set]
+        word_dict = {k: v for v, k in enumerate(word_list)}
         print('n_words: {}'.format(len(word_dict)), len(word_list))
         return word_dict
 
@@ -108,18 +107,19 @@ class MixData:
         #             if word not in word_dict:
         #                 continue
         #             fout.write(line)
-        with open(pre_w2v) as fin:
+        with open(pre_w2v, encoding="utf8") as fin:
             line = fin.readline().strip()
             emb_dim = len(line.split()) - 1
-        word_vecs = ["0 " * emb_dim[:-1]] * len(word_dict)
+        word_vecs = [("0 " * emb_dim)[:-1]] * len(word_dict)
         print("loading w2v")
         with open(pre_w2v, encoding="utf8") as fin:
-            for line in tqdm(fpin):
+            for line in tqdm(fin):
                 data = line.split()
                 word = data[0]
-                vec = data[1:]
+                if word not in word_dict:
+                    continue
                 idx = word_dict[word]
-                word_vecs[idx] = " ".join(vec)
+                word_vecs[idx] = " ".join(data[1:])
         print("writing vec")
         with open(dump_fp, 'w') as f:
             f.write("\n".join(word_vecs))
@@ -216,6 +216,7 @@ if __name__ == '__main__':
     dataout = "multi_data7_300k_pre"
     mix_data = MixData(
         fpin='./data/{0}/{0}'.format(dataset),
+        fpout="./data/{0}/{0}".format(dataout),
         wfreq=10,
         doc_len=500,
         pre_w2v="./data/Tencent_AILab_ChineseEmbedding.txt"
