@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-from estimator import MaxAttention, PNN, DynamicAttention, MultiHeadAttention
-from utils import report, kmeans
+from estimator import MaxAttention, PNN, DynamicAttention, MultiHeadAttention, MultiViewAttention
+from utils import report
 import time
 import json
 import shutil
@@ -14,20 +14,33 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=100, type=int)
 parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
-parser.add_argument("--data_path", default="./data/multi_data7_300k/tfrecord/multi_data7_300k", type=str)
+parser.add_argument("--data_path", default="./data/multi_data7_300k_pre/multi_data7_300k_pre", type=str)
 # common params
-parser.add_argument("--emb_size", default=64, type=int)
+parser.add_argument("--emb_size", default=200, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
 parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
-parser.add_argument("--load_pre", default=0, type=int)
+parser.add_argument("--load_pre", default=1, type=int)
+parser.add_argument("--load_wcls", default=1, type=int)
 # model select
-parser.add_argument("--model", default="MA", type=str)
+parser.add_argument("--model", default="MVA", type=str)
 # SPM
-parser.add_argument("--n_attention", default=3, type=int)
+parser.add_argument("--n_attention", default=9, type=int)
+
+
+def load_w2v(fp_pre):
+    data = []
+    with open(fp_pre, encoding="gbk") as f:
+        for line in f:
+            line = line.strip().split()
+            if len(line) != 200:
+                line = line[1:]
+            line = [float(x) for x in line]
+            data.append(line)
+    return data
 
 
 def main(argv):
@@ -45,15 +58,15 @@ def main(argv):
 
     w2v_pre = 0
     if args.load_pre:
-        fp_pre = "./data/{0}/{0}.w2v".format(args.data_path)
-        w2v_pre = kmeans.load_w2v(fp_pre)
+        fp_pre = "{0}.w2v".format(args.data_path)
+        w2v_pre = load_w2v(fp_pre)
 
-    word_cls = 0
+    w_cls = 0
     if args.load_wcls:
-        fp_cls = "./data/{0}/{0}.word_cls".format(args.data_path)
+        fp_cls = "{0}.word_cls".format(args.data_path)
         with open(fp_cls) as f:
             w_cls = f.read().strip().split("\n")
-            w_cls = [int(line.split()[args.n_attention - 1]) for line in w_cls]
+            w_cls = [int(line.split()[(args.n_attention - 1) // 2]) for line in w_cls]
 
     run_config = tf.estimator.RunConfig().replace(
         session_config=tf.ConfigProto(
@@ -69,6 +82,7 @@ def main(argv):
         "PNN": PNN,
         "DMA": DynamicAttention,
         "MA": MultiHeadAttention,
+        "MVA": MultiViewAttention,
     }
     my_estimator = models[args.model]
 

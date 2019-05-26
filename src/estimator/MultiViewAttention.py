@@ -27,7 +27,7 @@ def attention(queries: tf.Tensor, keys: tf.Tensor, keys_masks):
 
     # Mask
     paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
-    scores = tf.where(key_masks, scores, paddings)  # [B, 1, T]
+    scores = tf.where(keys_masks, scores, paddings)  # [B, 1, T]
 
     # Activation
     weight = tf.nn.softmax(scores)  # [B, 1, T]
@@ -45,16 +45,22 @@ def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_l
     :return: 2d array
     """
     batch_size, emb_dim = queries.shape.as_list()
+
+    key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
+    paddings = tf.zeros_like(words_cls)
+    paddings = tf.cast(paddings, tf.bool)
+
     multi_views = []
     for head in range(n_attention):
-        related_feature_index = tf.equal(words_cls, i)  # [B, 500]
-        related_feature_index = tf.expand_dims(related_feature_index, axis=-1)
-        related_feature_mask = tf.tile(related_feature_index, multiples=[1, 1, emb_dim])  # [B, 500, 64]
-        related_feature = tf.where(
-            condition=related_feature_mask,
-            x=keys,
-            y=tf.zeros_like(keys)
-        )  # [B, 500, 64]
+        related_feature_index = tf.equal(words_cls, head)  # [B, 500]
+        related_feature_index = tf.where(key_masks, related_feature_index, paddings)
+        related_feature_index = tf.expand_dims(related_feature_index, axis=-2)
+        # related_feature_mask = tf.tile(related_feature_index, multiples=[1, 1, emb_dim])  # [B, 500, 64]
+        # related_feature = tf.where(
+        #     condition=related_feature_mask,
+        #     x=keys,
+        #     y=tf.zeros_like(keys)
+        # )  # [B, 500, 64]
         view = tf.layers.dense(
             queries,
             units=emb_dim,
@@ -119,7 +125,7 @@ def model_fn(features, labels, mode, params):
     l2 = params["l2"]
     lr = params["lr"]
     w2v_pre = params["w2v_pre"]
-    w_cls = params["w_cls"]
+    word_class = params["w_cls"]
 
     '''
     features是包含一个dict，key为特征名，value为原始特征Tensor
@@ -131,8 +137,6 @@ def model_fn(features, labels, mode, params):
     pids = features["pids"]
     cvs = features["cvs"]
     cv_lens = features["cv_lens"]
-    word_class = features["w_cls"]
-
 
     with tf.variable_scope("CNN"):
         if w2v_pre:
@@ -146,10 +150,8 @@ def model_fn(features, labels, mode, params):
                 name="word_emb",
             )
 
-        jds_word_cls = tf.nn.embedding_lookup(word_class, jds)
         jds_emb = tf.nn.embedding_lookup(word_emb, jds)
         jds_conv = cnn(jds_emb, conv_size)
-        cvs_word_cls = tf.nn.embedding_lookup(word_class, cvs)
         cvs_emb = tf.nn.embedding_lookup(word_emb, cvs)
         cvs_conv = cnn(cvs_emb, conv_size)
 
@@ -173,6 +175,10 @@ def model_fn(features, labels, mode, params):
         p_emb = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
+        word_class = tf.constant(word_class)
+        jds_word_cls = tf.nn.embedding_lookup(word_class, jds)
+        cvs_word_cls = tf.nn.embedding_lookup(word_class, cvs)
+
         jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_conv, jd_lens, jds_word_cls)
         cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_conv, cv_lens, cvs_word_cls)
 
