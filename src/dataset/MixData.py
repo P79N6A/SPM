@@ -196,19 +196,21 @@ if __name__ == '__main__':
     import os
     print("work directory: ", os.getcwd())
 
-    dataset = "multi_data7_300k"
+    dataout = "multi_data7_300k"
+    dataout = "multi_data7_300k_pre"
     mix_data = MixData(
         fpin='./data/{0}/{0}'.format(dataset),
         wfreq=10,
         doc_len=500,
+        pre_w2v="./data/Tencent_AILab_ChineseEmbedding.txt"
     )
 
     fpin = "./data/{0}/{0}.train2".format(dataset)
-    fpout = "./data/{0}/tfrecord/{0}.train2.tfrecord".format(dataset)
+    fpout = "./data/{0}/tfrecord/{0}.train2.tfrecord".format(dataout)
     mix_data.tfrecord_generate(fpin, fpout)
 
     fpin = "./data/{0}/{0}.test2".format(dataset)
-    fpout = "./data/{0}/tfrecord/{0}.test2.tfrecord".format(dataset)
+    fpout = "./data/{0}/tfrecord/{0}.test2.tfrecord".format(dataout)
     mix_data.tfrecord_generate(fpin, fpout)
 
 
