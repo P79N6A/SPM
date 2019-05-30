@@ -14,13 +14,13 @@ FEATURES = {
 
 def attention(queries: tf.Tensor, keys: tf.Tensor, keys_masks):
     """
-    :param queries: [B, H]
+    :param queries: [B, 1, H]
     :param keys: [B, T, H]
-    :param keys_length: [B]
+    :param keys_masks: [B, 1, T]
     :return: 2d array
     """
     d = queries.shape.as_list()[-1]
-    queries = tf.expand_dims(queries, axis=1)  # [B, 1, H]
+    # queries = tf.expand_dims(queries, axis=1)  # [B, 1, H]
     scores = tf.divide(
         tf.matmul(queries, keys, transpose_b=True),  # [B, 1, T]
         tf.sqrt(float(d)))
@@ -33,18 +33,35 @@ def attention(queries: tf.Tensor, keys: tf.Tensor, keys_masks):
     weight = tf.nn.softmax(scores)  # [B, 1, T]
 
     weighted_features = tf.matmul(weight, keys)  # [B, 1, H]
-    weighted_features = tf.squeeze(weighted_features, axis=1)
+    # weighted_features = tf.squeeze(weighted_features, axis=1)
     return weighted_features
 
 
-def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_length: tf.Tensor, words_cls):
+def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_length: tf.Tensor, cross=0):
     """
-    :param queries: [B, 3, 64]
+    :param queries: [B, 64]
     :param keys: [B, 500, 64]
     :param keys_length: [B]
     :return: 2d array
     """
     batch_size, emb_dim = queries.shape.as_list()
+
+    views = []
+    for head in range(n_attention):
+        view = tf.layers.dense(
+            queries,
+            units=emb_dim,
+            activation=tf.nn.relu,
+        )  # [B, 64]
+        view = tf.expand_dims(view, axis=1)
+        views.append(view)
+    multi_queries = tf.concat(views, axis=1)
+
+    scores = tf.divide(
+        tf.matmul(multi_queries, keys, transpose_b=True),
+        emb_dim ** (1 / 2),
+    )  # [B, 3, 500]
+    words_cls = tf.math.argmax(scores, axis=-2)  # [B, 500]
 
     key_masks = tf.sequence_mask(keys_length, tf.shape(keys)[1])  # [B, 500]
     paddings = tf.zeros_like(words_cls)
@@ -53,23 +70,25 @@ def multi_attention(queries: tf.Tensor, n_attention:int, keys: tf.Tensor, keys_l
     multi_views = []
     for head in range(n_attention):
         related_feature_index = tf.equal(words_cls, head)  # [B, 500]
-        related_feature_index = tf.where(key_masks, related_feature_index, paddings)
-        related_feature_index = tf.expand_dims(related_feature_index, axis=-2)
-        # related_feature_mask = tf.tile(related_feature_index, multiples=[1, 1, emb_dim])  # [B, 500, 64]
-        # related_feature = tf.where(
-        #     condition=related_feature_mask,
-        #     x=keys,
-        #     y=tf.zeros_like(keys)
-        # )  # [B, 500, 64]
-        view = tf.layers.dense(
-            queries,
-            units=emb_dim,
-            activation=tf.nn.relu,
-        )
+        related_feature_index = tf.where(key_masks, related_feature_index, paddings)  # [B, 500]
+        related_feature_index = tf.expand_dims(related_feature_index, axis=-2)  # [B, 1, 500]
+        view = views[head]  # [B, 64]
         vec_of_view = attention(view, keys, related_feature_index)
+        if cross:
+            vec_of_view = pnn([view, vec_of_view])
         multi_views.append(vec_of_view)
     multi_views = tf.concat(multi_views, axis=-1)
     return multi_views
+
+
+def pnn(features):
+    cross_features = tf.einsum(
+        'api,apj->apij',
+        tf.concat(features[1:], axis=1),
+        tf.concat(features[:-1], axis=1)
+    )
+    cross_features = tf.keras.layers.Flatten()(cross_features)
+    return cross_features
 
 
 def cnn(x, conv_size):
@@ -125,7 +144,7 @@ def model_fn(features, labels, mode, params):
     l2 = params["l2"]
     lr = params["lr"]
     w2v_pre = params["w2v_pre"]
-    word_class = params["w_cls"]
+    cross = params["cross"]
 
     '''
     features是包含一个dict，key为特征名，value为原始特征Tensor
@@ -175,12 +194,8 @@ def model_fn(features, labels, mode, params):
         p_emb = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        word_class = tf.constant(word_class)
-        jds_word_cls = tf.nn.embedding_lookup(word_class, jds)
-        cvs_word_cls = tf.nn.embedding_lookup(word_class, cvs)
-
-        jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_conv, jd_lens, jds_word_cls)
-        cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_conv, cv_lens, cvs_word_cls)
+        jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_conv, jd_lens, cross)
+        cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_conv, cv_lens, cross)
 
     with tf.variable_scope("pooling"):
         jd_global_vecs = tf.reduce_max(jds_conv, axis=1)

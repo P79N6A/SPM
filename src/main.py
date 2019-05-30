@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-from estimator import MaxAttention, PNN, DynamicAttention, MultiHeadAttention, MultiViewAttention
+from estimator import \
+    MaxAttention, PNN, DynamicAttention, \
+    MultiHeadAttention, MultiViewAttention, DynamicAttentionWithMF
 from utils import report
 import time
 import json
@@ -16,19 +18,20 @@ parser.add_argument('--train_steps', default=1000, type=int)
 parser.add_argument("--n_epoch", default=30, type=int)
 parser.add_argument("--data_path", default="./data/multi_data7_300k_pre/multi_data7_300k_pre", type=str)
 # common params
-parser.add_argument("--emb_size", default=200, type=int)
+parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
 parser.add_argument("--l2", default=1e-4, type=float)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
-parser.add_argument("--load_pre", default=1, type=int)
-parser.add_argument("--load_wcls", default=1, type=int)
+parser.add_argument("--load_pre", default=0, type=int)
+parser.add_argument("--load_wcls", default=0, type=int)
 # model select
-parser.add_argument("--model", default="MVA", type=str)
+parser.add_argument("--model", default="DMAMF", type=str)
 # SPM
-parser.add_argument("--n_attention", default=9, type=int)
+parser.add_argument("--n_attention", default=5, type=int)
+parser.add_argument("--cross", default=1, type=int)
 
 
 def load_w2v(fp_pre):
@@ -83,6 +86,7 @@ def main(argv):
         "DMA": DynamicAttention,
         "MA": MultiHeadAttention,
         "MVA": MultiViewAttention,
+        "DMAMF": DynamicAttentionWithMF,
     }
     my_estimator = models[args.model]
 
@@ -102,6 +106,7 @@ def main(argv):
             "lr": args.lr,
             "w2v_pre": w2v_pre,
             "w_cls": w_cls,
+            "cross": args.cross,
         },
     )
 
