@@ -257,10 +257,14 @@ def model_fn(features, labels, mode, params):
         )
 
         with tf.variable_scope("mf_loss"):
-            mf_predict = cosin(j_emb, p_emb)
+            # mf_predict = cosin(j_emb, p_emb)
+            mf_predict = tf.reduce_sum(
+                tf.multiply(j_emb, p_emb),
+                axis=-1
+            )
             mf_loss = tf.losses.log_loss(
                 labels=fit_label,
-                predictions=mf_predict,
+                predictions=tf.squeeze(mf_predict),
             )
         loss += mf_loss
 
