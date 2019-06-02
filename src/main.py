@@ -3,8 +3,9 @@
 import argparse
 import tensorflow as tf
 from estimator import \
-    MaxAttention, PNN, DynamicAttention, \
+    MaxAttention, PNN, DynamicAttention, NCF, \
     MultiHeadAttention, MultiViewAttention, DynamicAttentionWithMF
+from estimator.common import input_fn
 from utils import report
 import time
 import json
@@ -22,13 +23,13 @@ parser.add_argument("--emb_size", default=64, type=int)
 parser.add_argument("--conv_size", default=5, type=int)
 parser.add_argument("--dropout", default=0.3, type=int)
 parser.add_argument("--l2", default=1e-4, type=float)
-parser.add_argument("--lr", default=0.01, type=float)
+parser.add_argument("--lr", default=0.005, type=float)
 parser.add_argument("--logdir", default="", type=str)
 parser.add_argument("--shuffle_size", default=100, type=int)
 parser.add_argument("--load_pre", default=0, type=int)
 parser.add_argument("--load_wcls", default=0, type=int)
 # model select
-parser.add_argument("--model", default="DMAMF", type=str)
+parser.add_argument("--model", default="NCF", type=str)
 # SPM
 parser.add_argument("--n_attention", default=5, type=int)
 parser.add_argument("--cross", default=1, type=int)
@@ -87,6 +88,7 @@ def main(argv):
         "MA": MultiHeadAttention,
         "MVA": MultiViewAttention,
         "DMAMF": DynamicAttentionWithMF,
+        "NCF": NCF,
     }
     my_estimator = models[args.model]
 
@@ -114,7 +116,7 @@ def main(argv):
         [{"sMetricsName": "auc", "sMetricsValue": 0.5}]
     )
     for epoch in range(1, args.n_epoch + 1):
-        train_input_fn = lambda: my_estimator.input_fn(
+        train_input_fn = lambda: input_fn(
             filenames="{}.train2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
             shuffle=args.batch_size,
@@ -126,7 +128,7 @@ def main(argv):
         )
 
         # Evaluate the model.
-        eval_input_fn = lambda: my_estimator.input_fn(
+        eval_input_fn = lambda: input_fn(
             filenames="{}.test2.tfrecord".format(args.data_path),
             batch_size=args.batch_size,
             shuffle=args.shuffle_size,

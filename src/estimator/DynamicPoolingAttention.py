@@ -126,15 +126,6 @@ def mlp(features, emb_dim, dropout, training):
     return predict
 
 
-def cosin(doc1_vector, doc2_vector):
-    norms1 = tf.sqrt(tf.reduce_sum(tf.square(doc1_vector), 1, keep_dims=False))
-    norms2 = tf.sqrt(tf.reduce_sum(tf.square(doc2_vector), 1, keep_dims=False))
-    dot = tf.reduce_sum(doc1_vector * doc2_vector, 1)
-    cos_dis = tf.divide(dot, (norms1 * norms2))
-    similarity = tf.divide((cos_dis + 1.0), 2.0, name="similarity")
-    return similarity
-
-
 def model_fn(features, labels, mode, params):
     '''
     :param features: dict of tf.Tensor
@@ -256,28 +247,7 @@ def model_fn(features, labels, mode, params):
             predictions=tf.squeeze(probs),
         )
 
-        any_label = tf.reduce_max(labels, axis=-1)
-        with tf.variable_scope("mf_loss"):
-            mf_features = tf.concat([j_emb, p_emb], axis=-1)
-            mf_predict = tf.sigmoid(mlp(
-                mf_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
-            # mf_predict = cosin(j_emb, p_emb)
-            # mf_predict = tf.reduce_sum(
-            #     tf.multiply(j_emb, p_emb),
-            #     axis=-1
-            # )
-            mf_loss = tf.losses.log_loss(
-                # labels=fit_label,
-                labels=any_label,
-                predictions=tf.squeeze(mf_predict),
-            )
-        loss += mf_loss
-
-        with tf.variable_scope("semantic_loss"):
+        with tf.variable_scope("aux_loss"):
             semantic_features = tf.concat(
                 values=[jd_global_vecs, cv_global_vecs],
                 axis=-1,
@@ -289,13 +259,10 @@ def model_fn(features, labels, mode, params):
                 training=(mode == tf.estimator.ModeKeys.TRAIN)
             ))
             semantic_loss = tf.losses.log_loss(
-                # labels=fit_label,
-                labels=any_label,
+                labels=fit_label,
                 predictions=tf.squeeze(semantic_prob),
             )
-        loss += semantic_loss
 
-        with tf.variable_scope("jc_loss"):
             jc_label = labels[:, 0]
             jc_features = tf.concat(
                 values=[j_emb, cv_weighted_vecs, jd_global_vecs, cv_global_vecs],
@@ -311,9 +278,7 @@ def model_fn(features, labels, mode, params):
                 labels=jc_label,
                 predictions=tf.squeeze(jc_prob)
             )
-        loss += jc_loss
 
-        with tf.variable_scope("cj_loss"):
             cj_label = labels[:, 1]
             cj_features = tf.concat(
                 values=[p_emb, jd_weighted_vecs, jd_global_vecs, cv_global_vecs],
@@ -330,7 +295,7 @@ def model_fn(features, labels, mode, params):
                 predictions=tf.squeeze(cj_prob)
             )
 
-        loss += cj_loss
+            loss = loss + semantic_loss + jc_loss + cj_loss
 
         if l2:
             l2_params = [

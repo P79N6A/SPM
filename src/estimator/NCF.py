@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
-from estimator.common import mlp
 
 
 FEATURES = {
@@ -13,34 +12,35 @@ FEATURES = {
 }
 
 
-def out_pnn(features):
-    for i in range(len(features)):
-        feature = features[i]
-        if len(feature.shape.as_list()) == 2:
-            feature = tf.expand_dims(feature, axis=1)
-            features[i] = feature
-    cross_features = tf.einsum(
-        'api,apj->apij',
-        tf.concat(features[1:], axis=1),
-        tf.concat(features[:-1], axis=1)
+def mlp(features, emb_dim, dropout, training):
+    features = tf.layers.batch_normalization(features)
+    if dropout:
+        features = tf.layers.dropout(
+            inputs=features,
+            rate=dropout,
+            training=training,
+        )
+    features = tf.layers.dense(
+        features,
+        units=emb_dim,
+        activation=tf.nn.relu,
     )
-    cross_features = tf.keras.layers.Flatten()(cross_features)
-
-    deep_feature = tf.concat(features, axis=-1)
-    deep_feature = tf.keras.layers.Flatten()(deep_feature)
-
-    pnn_feature = tf.concat([deep_feature, cross_features], axis=-1)
-    return pnn_feature
+    features = tf.layers.batch_normalization(features)
+    predict = tf.layers.dense(
+        features,
+        units=1,
+    )
+    return predict
 
 
 def model_fn(features, labels, mode, params):
-    """
+    '''
     :param features: dict of tf.Tensor
     :param labels: tf.Tensor
     :param mode: tf.estimator.ModeKeys
     :param params: customer params
     :return:
-    """
+    '''
     n_job = params["n_job"]
     n_person = params["n_person"]
     emb_size = params["emb_size"]
@@ -71,10 +71,13 @@ def model_fn(features, labels, mode, params):
                 stddev=1 / n_person ** (1 / 2),
             ),
             name="person_emb",
-        )
+        )        
         p_emb = tf.nn.embedding_lookup(person_emb, pids)
 
-    features = out_pnn([j_emb, p_emb])
+    features = tf.concat(
+        values=[j_emb, p_emb],
+        axis=-1,
+    )
 
     with tf.variable_scope("mlp"):
         logits = mlp(
