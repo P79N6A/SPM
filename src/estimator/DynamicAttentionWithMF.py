@@ -154,6 +154,7 @@ def model_fn(features, labels, mode, params):
     lr = params["lr"]
     w2v_pre = params["w2v_pre"]
     cross = params["cross"]
+    mf = params["mf"]
 
     '''
     features是包含一个dict，key为特征名，value为原始特征Tensor
@@ -222,6 +223,14 @@ def model_fn(features, labels, mode, params):
             dropout=dropout,
             training=(mode == tf.estimator.ModeKeys.TRAIN)
         )
+
+    if mf:
+        mf_logits = tf.reduce_sum(
+            tf.multiply(j_emb, p_emb),
+            axis=-1
+        )
+        logits += mf_logits
+
     probs = tf.nn.sigmoid(logits, name="output")
 
     '''
@@ -256,26 +265,26 @@ def model_fn(features, labels, mode, params):
             predictions=tf.squeeze(probs),
         )
 
-        any_label = tf.reduce_max(labels, axis=-1)
-        with tf.variable_scope("mf_loss"):
-            mf_features = tf.concat([j_emb, p_emb], axis=-1)
-            mf_predict = tf.sigmoid(mlp(
-                mf_features,
-                emb_dim=emb_size,
-                dropout=dropout,
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
-            ))
-            # mf_predict = cosin(j_emb, p_emb)
-            # mf_predict = tf.reduce_sum(
-            #     tf.multiply(j_emb, p_emb),
-            #     axis=-1
-            # )
-            mf_loss = tf.losses.log_loss(
-                # labels=fit_label,
-                labels=any_label,
-                predictions=tf.squeeze(mf_predict),
-            )
-        loss += mf_loss
+        # any_label = tf.reduce_max(labels, axis=-1)
+        # with tf.variable_scope("mf_loss"):
+        #     mf_features = tf.concat([j_emb, p_emb], axis=-1)
+        #     mf_predict = tf.sigmoid(mlp(
+        #         mf_features,
+        #         emb_dim=emb_size,
+        #         dropout=dropout,
+        #         training=(mode == tf.estimator.ModeKeys.TRAIN)
+        #     ))
+        #     # mf_predict = cosin(j_emb, p_emb)
+        #     # mf_predict = tf.reduce_sum(
+        #     #     tf.multiply(j_emb, p_emb),
+        #     #     axis=-1
+        #     # )
+        #     mf_loss = tf.losses.log_loss(
+        #         # labels=fit_label,
+        #         labels=any_label,
+        #         predictions=tf.squeeze(mf_predict),
+        #     )
+        # loss += mf_loss
 
         with tf.variable_scope("semantic_loss"):
             semantic_features = tf.concat(
@@ -289,8 +298,8 @@ def model_fn(features, labels, mode, params):
                 training=(mode == tf.estimator.ModeKeys.TRAIN)
             ))
             semantic_loss = tf.losses.log_loss(
-                # labels=fit_label,
-                labels=any_label,
+                labels=fit_label,
+                # labels=any_label,
                 predictions=tf.squeeze(semantic_prob),
             )
         loss += semantic_loss
@@ -373,32 +382,6 @@ def model_fn(features, labels, mode, params):
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, eval_metric_ops=metrics)
-
-
-def input_fn(filenames, batch_size=32, shuffle=0):
-    print("parsing", filenames)
-    def _parse_fn(record):
-        features = {
-            "labels": tf.FixedLenFeature([3], tf.int64),
-            "jids": tf.FixedLenFeature([], tf.int64),
-            "jds": tf.FixedLenFeature([500], tf.int64),
-            "jd_lens": tf.FixedLenFeature([], tf.int64),
-            "pids": tf.FixedLenFeature([], tf.int64),
-            "cvs": tf.FixedLenFeature([500], tf.int64),
-            "cv_lens": tf.FixedLenFeature([], tf.int64),
-        }
-        parsed = tf.parse_single_example(record, features)
-        labels = parsed.pop("labels")
-        return parsed, labels
-    dataset = tf.data.TFRecordDataset(filenames).map(
-        _parse_fn, num_parallel_calls=multiprocessing.cpu_count()
-    )
-    dataset = dataset.batch(batch_size)
-    if shuffle:
-        dataset = dataset.shuffle(buffer_size=shuffle)
-    itetator = dataset.make_one_shot_iterator()
-    batch_features, batch_labels = itetator.get_next()
-    return batch_features, batch_labels
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ parser.add_argument("--model", default="NCF", type=str)
 # SPM
 parser.add_argument("--n_attention", default=5, type=int)
 parser.add_argument("--cross", default=1, type=int)
+parser.add_argument("--mf", default=0, type=int)
 
 
 def load_w2v(fp_pre):
@@ -109,6 +110,7 @@ def main(argv):
             "w2v_pre": w2v_pre,
             "w_cls": w_cls,
             "cross": args.cross,
+            "mf": args.mf,
         },
     )
 
