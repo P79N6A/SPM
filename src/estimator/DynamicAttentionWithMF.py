@@ -180,9 +180,11 @@ def model_fn(features, labels, mode, params):
             )
 
         jds_emb = tf.nn.embedding_lookup(word_emb, jds)
-        jds_conv = cnn(jds_emb, conv_size)
         cvs_emb = tf.nn.embedding_lookup(word_emb, cvs)
-        cvs_conv = cnn(cvs_emb, conv_size)
+
+        if conv_size:
+            jds_emb = cnn(jds_emb, conv_size)
+            cvs_emb = cnn(cvs_emb, conv_size)
 
     with tf.variable_scope("user_idx"):
         job_emb = tf.Variable(
@@ -204,12 +206,12 @@ def model_fn(features, labels, mode, params):
         p_emb = tf.nn.embedding_lookup(person_emb, pids)
 
     with tf.variable_scope("attention"):
-        jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_conv, jd_lens, cross)
-        cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_conv, cv_lens, cross)
+        jd_weighted_vecs = multi_attention(j_emb, n_attention, jds_emb, jd_lens, cross)
+        cv_weighted_vecs = multi_attention(p_emb, n_attention, cvs_emb, cv_lens, cross)
 
     with tf.variable_scope("pooling"):
-        jd_global_vecs = tf.reduce_max(jds_conv, axis=1)
-        cv_global_vecs = tf.reduce_max(cvs_conv, axis=1)
+        jd_global_vecs = tf.reduce_max(jds_emb, axis=1)
+        cv_global_vecs = tf.reduce_max(cvs_emb, axis=1)
 
     features = tf.concat(
         values=[j_emb, jd_global_vecs, jd_weighted_vecs, p_emb, cv_global_vecs, cv_weighted_vecs],
@@ -227,9 +229,11 @@ def model_fn(features, labels, mode, params):
     if mf:
         mf_logits = tf.reduce_sum(
             tf.multiply(j_emb, p_emb),
-            axis=-1
+            axis=-1,
+            keepdims=True,
         )
-        logits += mf_logits
+        # logits += mf_logits
+        logits = tf.add(logits, mf_logits)
 
     probs = tf.nn.sigmoid(logits, name="output")
 
@@ -386,9 +390,3 @@ def model_fn(features, labels, mode, params):
 
 if __name__ == "__main__":
     tf.enable_eager_execution()
-    batch_features, batch_labels = input_fn(
-        "./data/multi_data7_tech/multi_data7_tech.train2.tfrecord",
-        batch_size=32,
-    )
-    print(batch_features)
-    print(batch_labels)

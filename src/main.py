@@ -2,9 +2,18 @@
 # -*- coding: utf-8 -*-
 import argparse
 import tensorflow as tf
-from estimator import \
-    MaxAttention, PNN, DynamicAttention, NCF, \
-    MultiHeadAttention, MultiViewAttention, DynamicAttentionWithMF
+from estimator import (
+    MF,
+    NCF,
+    PNN,
+    BaseModel,
+    MaxAttention,
+    DynamicAttention,
+    MultiHeadAttention,
+    MultiViewAttention,
+    DynamicAttentionWithMF,
+)
+
 from estimator.common import input_fn
 from utils import report
 import time
@@ -83,13 +92,15 @@ def main(argv):
     model_fn是模型定义
     '''
     models = {
-        "SPM": MaxAttention,
+        "MF": MF,
         "PNN": PNN,
+        "NCF": NCF,
+        "base": BaseModel,
+        "SPM": MaxAttention,
         "DMA": DynamicAttention,
         "MA": MultiHeadAttention,
         "MVA": MultiViewAttention,
         "DMAMF": DynamicAttentionWithMF,
-        "NCF": NCF,
     }
     my_estimator = models[args.model]
 
